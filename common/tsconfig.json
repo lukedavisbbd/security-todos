@@ -3,6 +3,7 @@
     "target": "es2016",
     "module": "Node16",
     "moduleResolution": "node16",
+    "declaration": true,
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

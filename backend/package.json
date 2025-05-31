@@ -1,7 +1,8 @@
 {
-  "name": "todos-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -11,13 +12,25 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/authenticator": "^1.1.4",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.29",
+    "@types/pg": "^8.15.2",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "install": "^0.13.0",
-    "npm": "^11.4.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "authenticator": "^1.1.5",
+    "bcrypt": "^6.0.0",
+    "common": "file:../common",
+    "cookie-parser": "^1.4.7",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.0",
+    "zod": "^3.25.42"
   }
 }

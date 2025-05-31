@@ -1,13 +1,31 @@
 import express from 'express';
 import config from './config/config';
 import apiRoutes from './routes/api-routes';
-import { errorHandler } from './error-handling';
+import { errorHandler } from './middleware/error-middleware';
+import cookieParser from 'cookie-parser';
+import { AppError, JwtContents } from 'common';
+
+declare module 'express' {
+    interface Request {
+        jwtContents?: JwtContents & { iat?: number, exp?: number };
+    }
+}
 
 const app = express();
 
+app.use(cookieParser())
 app.use(express.json());
 
 app.use('/api/', apiRoutes);
+
+app.use('*path', (_res, _req) => {
+    throw new AppError({
+        code: 'not_found',
+        status: 404,
+        message: 'Route not found.',
+        data: undefined,
+    });
+});
 
 app.use(errorHandler);
 
