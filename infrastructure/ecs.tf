@@ -86,8 +86,8 @@ resource "aws_ecs_task_definition" "backend" {
   family                   = "${var.project_name}-${var.environment}-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = 512  
+  memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
@@ -100,6 +100,7 @@ resource "aws_ecs_task_definition" "backend" {
           protocol      = "tcp"
         }
       ]
+      
       environment = [
         {
           name  = "PORT"
@@ -108,6 +109,18 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "ENVIRONMENT"
           value = var.environment
+        },
+        {
+          name  = "DB_HOST"
+          value = aws_db_instance.postgres.endpoint
+        },
+        {
+          name  = "DB_NAME"
+          value = aws_db_instance.postgres.db_name
+        },
+        {
+          name  = "DB_USER"
+          value = aws_db_instance.postgres.username
         }
       ]
       
@@ -121,23 +134,11 @@ resource "aws_ecs_task_definition" "backend" {
           valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:JWT_SECRET::"
         },
         {
-          name      = "DB_HOST"
-          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_HOST::"
-        },
-        {
-          name      = "DB_DATABASE"
-          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_DATABASE::"
-        },
-        {
-          name      = "DB_USER"
-          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_USER::"
-        },
-        {
           name      = "DB_PASSWORD"
           valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_PASSWORD::"
         }
       ]
-
+      
       logConfiguration = {
         logDriver = "awslogs"
         options = {

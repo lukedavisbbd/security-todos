@@ -12,12 +12,9 @@ resource "aws_secretsmanager_secret" "app_secrets" {
 resource "aws_secretsmanager_secret_version" "app_secrets" {
   secret_id = aws_secretsmanager_secret.app_secrets.id
   secret_string = jsonencode({
-    MASTER_KEY_2FA = var.master_key_2fa
-    JWT_SECRET     = var.jwt_secret
-    DB_HOST        = var.db_host
-    DB_DATABASE    = var.db_database
-    DB_USER        = var.db_user
-    DB_PASSWORD    = var.db_password
+    MASTER_KEY_2FA = ""
+    JWT_SECRET     = ""
+    DB_PASSWORD    = ""
   })
 
   lifecycle {
