@@ -10,7 +10,7 @@ const config = {
     jwtCookie: process.env.JWT_COOKIE ?? 'TODO_APP_JWT',
     refreshCookie: process.env.JWT_COOKIE ?? 'TODO_APP_REFRESH',
     dbHost: process.env.DB_HOST ?? '',
-    dbDatabase: process.env.DB_DATABASE ?? '',
+    dbDatabase: process.env.DB_NAME ?? '',
     dbUser: process.env.DB_USER ?? '',
     dbPassword: process.env.DB_PASSWORD ?? '',
 };

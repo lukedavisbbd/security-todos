@@ -37,7 +37,7 @@ WORKDIR /app
 COPY --from=builder /app/common ./common
 
 COPY --from=builder /app/backend/package*.json ./
-RUN npm ci --only=production
+RUN npm i
 
 COPY --from=builder /app/backend/dist ./dist
 

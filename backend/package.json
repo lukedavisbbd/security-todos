@@ -19,12 +19,12 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.29",
     "@types/pg": "^8.15.2",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "express": "^5.1.0",
+    "dotenv": "^16.5.0",
     "authenticator": "^1.1.5",
     "bcrypt": "^6.0.0",
     "common": "file:../common",
