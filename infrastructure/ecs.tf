@@ -108,32 +108,36 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "ENVIRONMENT"
           value = var.environment
-        },
-        {
-          name  = "MASTER_KEY_2FA"
-          value = var.master_key_2fa
-        },
-        {
-          name  = "JWT_SECRET"
-          value = var.jwt_secret
-        },
-        {
-          name  = "DB_HOST"
-          value = var.db_host
-        },
-        {
-          name  = "DB_DATABASE"
-          value = var.db_database
-        },
-        {
-          name  = "DB_USER"
-          value = var.db_user
-        },
-        {
-          name  = "DB_PASSWORD"
-          value = var.db_password
         }
       ]
+      
+      secrets = [
+        {
+          name      = "MASTER_KEY_2FA"
+          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:MASTER_KEY_2FA::"
+        },
+        {
+          name      = "JWT_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:JWT_SECRET::"
+        },
+        {
+          name      = "DB_HOST"
+          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_HOST::"
+        },
+        {
+          name      = "DB_DATABASE"
+          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_DATABASE::"
+        },
+        {
+          name      = "DB_USER"
+          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_USER::"
+        },
+        {
+          name      = "DB_PASSWORD"
+          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_PASSWORD::"
+        }
+      ]
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
