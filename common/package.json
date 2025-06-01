@@ -1,0 +1,12 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "zod": "^3.25.42"
+  }
+}
