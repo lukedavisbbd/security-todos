@@ -1,6 +1,6 @@
 <script>
   import { fly } from "svelte/transition";
-  import { LogOut, X } from "@lucide/svelte/icons";
+  import { ChevronDown, LogOut, X } from "@lucide/svelte/icons";
   import { userJwtContents } from "../util/stores";
   import { login, logout, register } from "../util/auth";
   import { LoginRequestSchema, RegisterRequestSchema } from "common";
@@ -18,7 +18,7 @@
     const request = LoginRequestSchema.parse({
       email: 'luke.davis@bbd.co.za',
       password: 'abcd12345678',
-      twoFactor: '001061',
+      twoFactor: '953274',
     });
     const result = await login(request);
     console.log(result);
@@ -45,6 +45,12 @@
     box-shadow: 0 0.5rem 0.5rem #0001;
     justify-content: space-between;
     align-items: center;
+
+    .open-menu-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
 
     img.profile-icon {
       width: 1.75rem;
@@ -108,7 +114,8 @@
     {#await gravatarHashPromise}
     {:then gravatarHash} 
       {#if gravatarHash && $userJwtContents}
-        <button onclick={() => showMenu = true} aria-label="open menu">
+        <button class="open-menu-button" onclick={() => showMenu = true} aria-label="open menu">
+          <ChevronDown/>
           <img class="profile-icon" src="https://gravatar.com/avatar/{gravatarHash}?d=identicon" alt={$userJwtContents.user.name}/>
         </button>
         {#if showMenu}
