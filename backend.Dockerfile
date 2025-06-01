@@ -32,14 +32,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+COPY --from=builder /app /app
 
-COPY --from=builder /app/common ./common
-
-COPY --from=builder /app/backend/package*.json ./
-RUN npm i
-
-COPY --from=builder /app/backend/dist ./dist
+WORKDIR /app/backend
 
 COPY migrations /flyway/sql
 
