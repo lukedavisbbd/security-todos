@@ -18,6 +18,18 @@
     "alwaysStrict": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "common": ["../common/dist/index"],
+      "common/*": ["../common/dist/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
