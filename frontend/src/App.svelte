@@ -1,47 +1,42 @@
-<script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+<script>
+  import { fade } from "svelte/transition";
+  import Navbar from "./lib/Navbar.svelte";
+  import { whoami } from "./util/auth";
+  import { onMount } from "svelte";
+  import { userJwtContents } from "./util/stores";
+
+  onMount(() => {
+    whoami();
+    const interval = setInterval(() => {
+      $userJwtContents && whoami()
+    }, 60000);
+    return () => clearInterval(interval);
+  });
 </script>
 
-<main>
-  <div>
-    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
-
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
-</main>
-
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
+  .grey-zone {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: #0002;
+    z-index: 20;
   }
 </style>
+
+<Navbar/>
+
+<main>
+  <article>
+    <p>My todo app.</p>
+  </article>
+</main>
+
+<!-- todo: show when modal active -->
+{#if false}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div transition:fade={{ duration: 150 }} class="grey-zone" onclick={() => false}></div>
+{/if}

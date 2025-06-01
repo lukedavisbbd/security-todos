@@ -1,6 +1,7 @@
 
 CREATE TABLE users (
     "user_id" SERIAL PRIMARY KEY,
+    "name" VARCHAR(64) NOT NULL,
     "email" VARCHAR(128) NOT NULL UNIQUE,
     "email_verified" BOOLEAN NOT NULL DEFAULT FALSE,
     "password" VARCHAR(128) NOT NULL,
