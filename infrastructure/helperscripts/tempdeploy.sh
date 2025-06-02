@@ -44,12 +44,12 @@ terraform apply -auto-approve \
 echo "Waiting for RDS to be available..."
 aws rds wait db-instance-available --db-instance-identifier ${PROJECT_NAME}-${ENVIRONMENT}-db --region $AWS_REGION
 
-echo "Force ECS service update to deploy new images..."
-aws ecs update-service \
-  --cluster ${PROJECT_NAME}-${ENVIRONMENT}-cluster \
-  --service ${PROJECT_NAME}-${ENVIRONMENT}-backend \
-  --force-new-deployment \
-  --region $AWS_REGION
+# echo "Force ECS service update to deploy new images..."
+# aws ecs update-service \
+#   --cluster ${PROJECT_NAME}-${ENVIRONMENT}-cluster \
+#   --service ${PROJECT_NAME}-${ENVIRONMENT}-backend \
+#   --force-new-deployment \
+#   --region $AWS_REGION
 
 ALB_DNS=$(terraform output -raw alb_dns_name)
 RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
