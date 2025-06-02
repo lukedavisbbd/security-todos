@@ -10,6 +10,7 @@ const config = {
     jwtCookie: process.env.JWT_COOKIE ?? 'TODO_APP_JWT',
     refreshCookie: process.env.JWT_COOKIE ?? 'TODO_APP_REFRESH',
     dbHost: process.env.DB_HOST ?? '',
+    dbPort: Number.parseInt(process.env.DB_PORT ?? '5432'),
     dbDatabase: process.env.DB_DATABASE ?? '',
     dbUser: process.env.DB_USER ?? '',
     dbPassword: process.env.DB_PASSWORD ?? '',
