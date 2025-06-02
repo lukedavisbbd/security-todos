@@ -1,15 +1,15 @@
 import express from 'express';
-import config from './config/config';
-import apiRoutes from './routes/api-routes';
-import { errorHandler } from './middleware/error-middleware';
+import config from './config/config.js';
+import apiRoutes from './routes/api-routes.js';
+import { errorHandler } from './middleware/error-middleware.js';
 import cookieParser from 'cookie-parser';
-import { AppError, JwtContents } from 'common';
+import { AppError } from 'common';
 
-declare module 'express' {
-    interface Request {
-        jwtContents?: JwtContents & { iat?: number, exp?: number };
-    }
-}
+/**
+ * @typedef {(import('express').Request & {
+ *     jwtContents: import('common').JwtContents & ({ iat: number, exp: number } | {})
+ * })} AuthenticatedRequest
+ */
 
 const app = express();
 

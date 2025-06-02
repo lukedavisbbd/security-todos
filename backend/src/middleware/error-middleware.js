@@ -1,13 +1,13 @@
 import { AppError } from 'common';
-import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod/v4';
 
-export const errorHandler = (
-    err: unknown,
-    _req: Request,
-    res: Response,
-    _next: NextFunction,
-) => {
+/**
+ * @param {unknown} err 
+ * @param {import('express').Request} _req 
+ * @param {import('express').Response} res 
+ * @param {import('express').NextFunction} _next 
+ */
+export const errorHandler = (err, _req, res, _next) => {
     let appError;
     if (err instanceof AppError) {
         appError = err;

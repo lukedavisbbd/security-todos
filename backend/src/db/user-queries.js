@@ -1,16 +1,19 @@
-import { AppError, JwtContents, LoginRequest, RegisterRequest, RegisterResponse, User } from 'common';
-import { pool } from './pool';
+import { pool } from './pool.js';
 import crypto from 'crypto';
-import * as pg from 'pg';
-import * as bcrypt from 'bcrypt';
-import * as authenticator from 'authenticator';
-import config from '../config/config';
+import pg from 'pg';
+import bcrypt from 'bcrypt';
+import authenticator from 'authenticator';
+import config from '../config/config.js';
+import { AppError } from 'common';
 
 const saltRounds = 10;
 
 const encryptionAlgorithm = 'aes-256-gcm';
 
-const encrypt = async (text: string) => {
+/**
+ * @param {string} text 
+ */
+const encrypt = async (text) => {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(encryptionAlgorithm, config.masterKey2fa, iv);
     const encryptedText = cipher.update(text, 'utf8', 'hex');
@@ -18,7 +21,10 @@ const encrypt = async (text: string) => {
     return iv.toString('hex') + ':' + encryptedText;
 }
 
-const decrypt = async (text: string) => {
+/**
+ * @param {string} text 
+ */
+const decrypt = async (text) => {
     const [ivString, data] = text.split(':');
 
     if (!ivString || !data) return undefined;
@@ -34,19 +40,30 @@ const generateRefreshToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
 
-const mapRowToUserInfo = (row: any) => {
+/**
+ * @param {any} row
+ */
+const mapRowToUserInfo = (row) => {
     if (!row)
         return null;
 
-    const userId = row.user_id as number | undefined;
-    const passwordHash = row.password as string | undefined;
-    const email = row.email as string | undefined;
-    const emailVerified = row.email_verified as boolean | undefined;
-    const twoFactorKeyEncrypted = row.two_factor_key as string | undefined;
-    const refreshTokenHash = row.refresh_token as string | null;
+    /** @type {number | undefined} */
+    const userId = row.user_id;
+    /** @type {string | undefined} */
+    const passwordHash = row.password;
+    /** @type {string | undefined} */
+    const email = row.email;
+    /** @type {string | undefined} */
+    const name = row.name;
+    /** @type {boolean | undefined} */
+    const emailVerified = row.email_verified;
+    /** @type {string | undefined} */
+    const twoFactorKeyEncrypted = row.two_factor_key;
+    /** @type {string | null} */
+    const refreshTokenHash = row.refresh_token;
 
-    if (!userId || !passwordHash || !email || typeof emailVerified === 'undefined' || !twoFactorKeyEncrypted) {
-        console.error(`failed to map row to user ${userId}`);
+    if (!userId || !passwordHash || !email || !name || typeof emailVerified === 'undefined' || !twoFactorKeyEncrypted) {
+        console.error(`failed to map row to user ${userId}`, row);
         throw new AppError();
     }
 
@@ -54,23 +71,52 @@ const mapRowToUserInfo = (row: any) => {
         userId,
         passwordHash,
         email,
+        name,
         emailVerified,
         twoFactorKeyEncrypted,
         refreshTokenHash,
     };
 };
 
-export const fetchRoles = async (userId: number) => {
+/**
+ * @param {number} userId
+ */
+export const fetchRoles = async (userId) => {
     const result = await pool.query('SELECT role_name FROM user_roles NATURAL JOIN roles WHERE user_id = $1', [userId]);
-    return result.rows.map(row => row.role_name as string);
+    return result.rows.map(row => /** @type {string} */ (row.role_name));
 };
 
-export const clearRefreshTokens = async (userId: number) => {
+/**
+ * @param {number} userId
+ */
+export const clearAllRefreshTokens = async (userId) => {
     await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
 };
 
-export const loginWithToken = async (userId: number, refreshToken: string) => {
-    const result = await pool.query('SELECT user_id, email, password, email_verified, two_factor_key, refresh_token FROM users NATURAL JOIN refresh_tokens WHERE user_id = $1 AND expiry > NOW()', [userId]);
+/**
+ * @param {number} userId
+ * @param {string} refreshToken
+ */
+export const deleteRefreshToken = async (userId, refreshToken) => {
+    const result = await pool.query('SELECT refresh_token FROM refresh_tokens WHERE user_id = $1', [userId]);
+    const tokenPromises = result.rows.map(row => /** @type {string} */(row.refresh_token))
+        .map(async (tokenHash) => {return {
+            tokenHash,
+            match: await bcrypt.compare(refreshToken, tokenHash),
+        }});
+    const token = (await Promise.all(tokenPromises)).filter(({ match }) => match)[0];
+
+    if (token) {
+        await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1 AND refresh_token = $2', [userId, token.tokenHash]);
+    }
+};
+
+/**
+ * @param {number} userId
+ * @param {string} refreshToken
+ */
+export const loginWithToken = async (userId, refreshToken) => {
+    const result = await pool.query('SELECT user_id, email, name, password, email_verified, two_factor_key, refresh_token FROM users NATURAL JOIN refresh_tokens WHERE user_id = $1 AND expiry > NOW()', [userId]);
     const users = result.rows.map(mapRowToUserInfo);
 
     const tokenComparisons = (await Promise.all(users.map(async (userInfo) => {
@@ -88,25 +134,33 @@ export const loginWithToken = async (userId: number, refreshToken: string) => {
 
     const userMatch = tokenComparisons[0];
 
-    if (!userMatch)
+    // last two checks are just necessary for type checking
+    if (!userMatch || !userMatch.userInfo || !userMatch.matches)
         return null;
 
     // delete old token
     const { userInfo } = userMatch;
-    const oldTokenHash = userInfo!.refreshTokenHash;
+    const oldTokenHash = userInfo.refreshTokenHash;
     await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1 AND refresh_token = $2', [userId, oldTokenHash]);
 
     const newToken = generateRefreshToken();
     const newTokenHash = await bcrypt.hash(newToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userId, newTokenHash]);
 
-    const user: User = {
-        userId: userInfo!.userId,
-        email: userInfo!.email,
-        emailVerified: userInfo!.emailVerified,
+    /**
+     * @type {import('common').User}
+     */
+    const user = {
+        userId: userInfo.userId,
+        email: userInfo.email,
+        name: userInfo.name,
+        emailVerified: userInfo.emailVerified,
     };
 
-    const jwtContents: JwtContents = {
+    /**
+     * @type {import('common').JwtContents}
+     */
+    const jwtContents = {
         user,
         roles: await fetchRoles(user.userId),
     };
@@ -118,8 +172,11 @@ export const loginWithToken = async (userId: number, refreshToken: string) => {
     };
 };
 
-export const loginUser = async (request: LoginRequest) => {
-    const result = await pool.query('SELECT user_id, email, password, email_verified, two_factor_key FROM users WHERE email = $1', [request.email]);
+/**
+ * @param {import('common').LoginRequest} request 
+ */
+export const loginUser = async (request) => {
+    const result = await pool.query('SELECT user_id, email, name, password, email_verified, two_factor_key FROM users WHERE email = $1', [request.email]);
     const userInfo = mapRowToUserInfo(result.rows[0]);
 
     if (!userInfo)
@@ -151,13 +208,20 @@ export const loginUser = async (request: LoginRequest) => {
             }
         });
     
-    const user: User = {
+    /**
+     * @type {import('common').User}
+     */
+    const user = {
         userId: userInfo.userId,
         email: userInfo.email,
+        name: userInfo.name,
         emailVerified: userInfo.emailVerified,
     };
     
-    const jwtContents: JwtContents = {
+    /**
+     * @type {import('common').JwtContents}
+     */
+    const jwtContents = {
         user,
         roles: await fetchRoles(user.userId),
     };
@@ -169,19 +233,22 @@ export const loginUser = async (request: LoginRequest) => {
     };
 };
 
-export const registerUser = async (request: RegisterRequest) => {
+/**
+ * @param {import('common').RegisterRequest} request
+ */
+export const registerUser = async (request) => {
     const twoFactorKey = authenticator.generateKey();
     const twoFactorKeyEncrypted = await encrypt(twoFactorKey);
     const passwordHash = await bcrypt.hash(request.password, saltRounds);
     let userInfo;
 
     try {
-        const result = await pool.query('INSERT INTO users (email, password, two_factor_key) VALUES ($1, $2, $3) RETURNING user_id, email, password, email_verified, two_factor_key', [request.email, passwordHash, twoFactorKeyEncrypted]);
+        const result = await pool.query('INSERT INTO users (email, name, password, two_factor_key) VALUES ($1, $2, $3, $4) RETURNING user_id, email, name, password, email_verified, two_factor_key', [request.email, request.name, passwordHash, twoFactorKeyEncrypted]);
         userInfo = mapRowToUserInfo(result.rows[0]);
     } catch (error) {
         if (error instanceof pg.DatabaseError && error.constraint === 'users_email_key') {
             const data = {
-                errors: [],
+                errors: /** @type {string[]} */([]),
                 properties: {
                     email: {
                         errors: ['Email address already taken.']
@@ -208,20 +275,30 @@ export const registerUser = async (request: RegisterRequest) => {
     const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
 
-    const user: User = {
+    /**
+     * @type {import('common').User}
+     */
+    const user = {
         userId: userInfo.userId,
         email: userInfo.email,
+        name: userInfo.name,
         emailVerified: userInfo.emailVerified,
     };
 
     const totpUri = authenticator.generateTotpUri(twoFactorKey, request.email, 'To-Do App', 'SHA1', 6, 30);
 
-    const response: RegisterResponse = {
+    /**
+     * @type {import('common').RegisterResponse}
+     */
+    const response = {
         user,
         totpUri,
     };
 
-    const jwtContents: JwtContents = {
+    /**
+     * @type {import('common').JwtContents}
+     */
+    const jwtContents = {
         user,
         roles: await fetchRoles(user.userId),
     };

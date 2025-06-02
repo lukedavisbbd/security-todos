@@ -1,14 +1,13 @@
-import { Request, Response } from 'express';
-import { AppError, LoginRequest, RegisterRequest } from 'common';
+import { AppError, LoginRequestSchema, RegisterRequestSchema } from 'common';
 import { Router } from 'express';
-import { clearRefreshTokens, loginUser, registerUser } from '../db/user-queries';
-import { authenticated, setAuthCookies } from '../middleware/auth-middleware';
-import config from '../config/config';
+import { clearAllRefreshTokens, deleteRefreshToken, loginUser, registerUser } from '../db/user-queries.js';
+import { authenticated, setAuthCookies } from '../middleware/auth-middleware.js';
+import config from '../config/config.js';
 
 const router = Router();
 
 router.post('/login', async (req, res) => {
-    const loginReq = LoginRequest.parse(req.body);
+    const loginReq = LoginRequestSchema.parse(req.body);
     const loginDetails = await loginUser(loginReq);
 
     if (loginDetails) {
@@ -29,7 +28,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const registerReq = RegisterRequest.parse(req.body);
+    const registerReq = RegisterRequestSchema.parse(req.body);
     const registerDetail = await registerUser(registerReq);
 
     if (registerDetail) {
@@ -49,9 +48,18 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.get('/logout', authenticated, async (req: Request, res: Response) => {
+/**
+ * @param {import('src').AuthenticatedRequest} req 
+ * @param {import('express').Response} res 
+ */
+const logout = async (req, res) => {
     if ('all' in req.query) {
-        clearRefreshTokens(req.jwtContents!.user.userId);
+        clearAllRefreshTokens(req.jwtContents.user.userId);
+    } else {
+        const refreshToken = req.cookies[config.refreshCookie];
+        if (typeof refreshToken === 'string' && refreshToken) {
+            deleteRefreshToken(req.jwtContents.user.userId, refreshToken);
+        }
     }
 
     res.clearCookie(config.jwtCookie);
@@ -60,10 +68,20 @@ router.get('/logout', authenticated, async (req: Request, res: Response) => {
     res.send({
         message: 'success',
     });
-});
+};
 
-router.post('/whoami', authenticated, async (req: Request, res: Response) => {
+// @ts-ignore
+router.get('/logout', authenticated, logout);
+
+/**
+ * @param {import('src').AuthenticatedRequest} req 
+ * @param {import('express').Response} res 
+ */
+const whoami = async (req, res) => {
     res.send(req.jwtContents);
-});
+};
+
+// @ts-ignore
+router.get('/whoami', authenticated, whoami);
 
 export default router;

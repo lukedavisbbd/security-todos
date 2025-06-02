@@ -3,9 +3,10 @@ import { z } from 'zod/v4';
 const twoFactorOtpRegex = /^[0-9]{6}$/; // exactly 6 digits
 const twoFactorError = '2FA pin must be exactly 6 digits.';
 
-const trimUnknown = (value: unknown) => typeof value === 'string' ? value.trim() : value;
+/** @param {unknown} value */
+const trimUnknown = (value) => typeof value === 'string' ? value.trim() : value;
 
-export const LoginRequest = z.object({
+export const LoginRequestSchema = z.object({
     email: z.preprocess(trimUnknown, z.email()),
     password: z.preprocess(trimUnknown,
         z.string()
@@ -17,9 +18,11 @@ export const LoginRequest = z.object({
         .refine(string => twoFactorOtpRegex.test(string), { error: twoFactorError }),
 });
 
-export type LoginRequest = typeof LoginRequest._output;
+/**
+ * @typedef {z.infer<typeof LoginRequestSchema>} LoginRequest
+ */
 
-export const RegisterRequest = z.object({
+export const RegisterRequestSchema = z.object({
     email: z.preprocess(trimUnknown, z.email()),
     // https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#implement-proper-password-strength-controls
     // OWasp: password must have a minimum length at least 12 and a maximum length no less than 64 to allow passphrases
@@ -29,26 +32,39 @@ export const RegisterRequest = z.object({
         .min(12, { error: 'Password must be at least 12 characters long.' })
         .max(128, { error: 'Password must be no more than 128 characters long.' })
     ),
+    name: z.preprocess(trimUnknown,
+        z.string()
+        .nonempty({ error: 'Name may not be empty.' })
+    ),
 });
 
-export type RegisterRequest = typeof RegisterRequest._output;
+/**
+ * @typedef {z.infer<typeof RegisterRequestSchema>} RegisterRequest
+ */
 
-export const User = z.object({
+export const UserSchema = z.object({
     userId: z.number(),
     email: z.email(),
+    name: z.string().nonempty(),
     emailVerified: z.boolean(),
 });
 
-export type User = typeof User._output;
+/**
+ * @typedef {z.infer<typeof UserSchema>} User
+ */
 
-export const JwtContents = z.object({
-    user: User,
+export const JwtContentsSchema = z.object({
+    user: UserSchema,
     roles: z.array(z.string()),
 });
 
-export type JwtContents = typeof JwtContents._output;
+/**
+ * @typedef {z.infer<typeof JwtContentsSchema>} JwtContents
+ */
 
-export type RegisterResponse = {
-    user: User,
-    totpUri: string,
-};
+/**
+ * @typedef {{
+ *     user: User,
+ *     totpUri: string,
+ * }} RegisterResponse
+ */
