@@ -9,7 +9,7 @@ COPY common/src/ ./src/
 
 WORKDIR /app
 COPY frontend/package*.json ./frontend/
-COPY frontend/vite.config.ts ./frontend/
+COPY frontend/vite.config.js ./frontend/
 WORKDIR /app/frontend
 RUN npm i
 
