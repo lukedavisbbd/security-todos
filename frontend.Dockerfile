@@ -3,15 +3,12 @@ FROM node:24-slim as builder
 WORKDIR /app
 
 COPY common/package*.json ./common/
-COPY common/tsconfig.json ./common/
 WORKDIR /app/common
 RUN npm ci
 COPY common/src/ ./src/
-RUN npm run build
 
 WORKDIR /app
 COPY frontend/package*.json ./frontend/
-COPY frontend/tsconfig*.json ./frontend/
 COPY frontend/vite.config.ts ./frontend/
 WORKDIR /app/frontend
 RUN npm i
