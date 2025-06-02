@@ -1,9 +1,11 @@
 <script>
-  import { fly } from "svelte/transition";
-  import { ChevronDown, LogOut, X } from "@lucide/svelte/icons";
+  import { fade, fly } from "svelte/transition";
+  import { ChevronDown, LogOut, NotebookPen, X } from "@lucide/svelte/icons";
   import { userJwtContents } from "../util/stores";
-  import { login, logout, register } from "../util/auth";
-  import { LoginRequestSchema, RegisterRequestSchema } from "common";
+  import { logout } from "../util/auth";
+  import RegisterModal from "./modals/RegisterModal.svelte";
+  import LoginModal from "./modals/LoginModal.svelte";
+  import Spinner from "./Spinner.svelte";
 
   /**
    * @param {string} input
@@ -14,27 +16,9 @@
     return [...new Uint8Array(outBuffer)].map(x => x.toString(16).padStart(2, '0')).join('');
   }
 
-  const performLogin = async() => {
-    const request = LoginRequestSchema.parse({
-      email: 'luke.davis@bbd.co.za',
-      password: 'abcd12345678',
-      twoFactor: '953274',
-    });
-    const result = await login(request);
-    console.log(result);
-  };
-
-  const performRegistration = async() => {
-    const request = RegisterRequestSchema.parse({
-      email: 'luke.davis@bbd.co.za',
-      password: 'abcd12345678',
-      name: 'Luke Davis',
-    });
-    const result = await register(request);
-    console.log(result);
-  };
-
   let showMenu = $state(false);
+  let showLogin = $state(false);
+  let showRegister = $state(false);
   let gravatarHashPromise = $derived($userJwtContents && window.crypto ? hashSha256Hex($userJwtContents.user.email.trim().toLowerCase()) : null);
 </script>
 
@@ -45,6 +29,10 @@
     box-shadow: 0 0.5rem 0.5rem #0001;
     justify-content: space-between;
     align-items: center;
+
+    > h1 a {
+      color: inherit;
+    }
 
     .open-menu-button {
       display: flex;
@@ -79,6 +67,7 @@
     padding: 0.5rem;
     display: flex;
     flex-direction: column;
+    gap: 0.25rem;
 
     header {
       padding: 0.5rem;
@@ -108,7 +97,12 @@
 </style>
 
 <nav>
-  <h1>To-Do App</h1>
+  <h1>
+    <a href="#">
+      <NotebookPen/>
+      To-Do
+    </a>
+  </h1>
   <div>
     <!-- svelte-ignore block_empty -->
     {#await gravatarHashPromise}
@@ -119,34 +113,39 @@
           <img class="profile-icon" src="https://gravatar.com/avatar/{gravatarHash}?d=identicon" alt={$userJwtContents.user.name}/>
         </button>
         {#if showMenu}
-          <aside transition:fly={{ duration: 150, x: 150 }}>
-            <header>
-              <button class="profile-button" aria-label="close menu">
-                <img class="profile-icon" src="https://gravatar.com/avatar/{gravatarHash}?d=identicon" alt={$userJwtContents.user.name}/>
-                {$userJwtContents.user.name}
-              </button>
-              <button class="sidebar-close btn btn-small" onclick={() => showMenu = false}>
-                <X/>
-              </button>
-            </header>
-            <article class="sidebar-content">
-              <button class="btn" onclick={() => logout()}>
-                <LogOut/>
-                Logout
-              </button>
-              <button class="btn" onclick={() => logout(true)}>
-                <LogOut/>
-                Logout from All Devices
-              </button>
-            </article>
-          </aside>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div transition:fade={{ duration: 150 }} class="grey-zone" onclick={() => showMenu = false}>
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <aside transition:fly={{ duration: 150, x: 150 }} onclick={e => e.stopPropagation()}>
+              <header>
+                <button class="profile-button" aria-label="close menu">
+                  <img class="profile-icon" src="https://gravatar.com/avatar/{gravatarHash}?d=identicon" alt={$userJwtContents.user.name}/>
+                  {$userJwtContents.user.name}
+                </button>
+                <button class="sidebar-close btn btn-small" onclick={() => showMenu = false}>
+                  <X class="full"/>
+                </button>
+              </header>
+              <article class="sidebar-content">
+                <button class="btn" onclick={() => logout()}>
+                  <LogOut/>
+                  Logout
+                </button>
+                <button class="btn" onclick={() => logout(true)}>
+                  <LogOut/>
+                  Logout from All Devices
+                </button>
+              </article>
+            </aside>
+          </div>
         {/if}
       {:else}
         <div class="login-btns">
-          <button class="btn" onclick={performLogin}>
+          <button class="btn" onclick={() => showLogin = true}>
             Sign In
           </button>
-          <button class="btn btn-outline" onclick={performRegistration}>
+          <button class="btn btn-outline" onclick={() => showRegister = true}>
             Register
           </button>
         </div>
@@ -154,3 +153,10 @@
     {/await}
   </div>
 </nav>
+
+{#if showLogin}
+  <LoginModal close={() => showLogin = false}/>
+{/if}
+{#if showRegister}
+  <RegisterModal close={() => showRegister = false}/>
+{/if}
