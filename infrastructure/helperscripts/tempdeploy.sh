@@ -14,6 +14,9 @@ terraform init
 echo "Creating AWS infrastructure and secrets..."
 terraform apply -auto-approve
 
+echo "Waiting for RDS to be available..."
+aws rds wait db-instance-available --db-instance-identifier ${PROJECT_NAME}-${ENVIRONMENT}-db --region $AWS_REGION
+
 BACKEND_ECR_URL=$(terraform output -raw backend_ecr_repository_url)
 FRONTEND_ECR_URL=$(terraform output -raw frontend_ecr_repository_url)
 
@@ -41,8 +44,6 @@ terraform apply -auto-approve \
   -var="backend_image=$BACKEND_ECR_URL:latest" \
   -var="frontend_image=$FRONTEND_ECR_URL:latest"
 
-echo "Waiting for RDS to be available..."
-aws rds wait db-instance-available --db-instance-identifier ${PROJECT_NAME}-${ENVIRONMENT}-db --region $AWS_REGION
 
 # echo "Force ECS service update to deploy new images..."
 # aws ecs update-service \
