@@ -1,11 +1,11 @@
 <script>
   import { fade, fly } from "svelte/transition";
-  import { ChevronDown, LogOut, NotebookPen, X } from "@lucide/svelte/icons";
+  import { ChevronDown, LogOut, NotebookPen, UserLock, X } from "@lucide/svelte/icons";
   import { userJwtContents } from "../util/stores";
   import { logout } from "../util/auth";
   import RegisterModal from "./modals/RegisterModal.svelte";
   import LoginModal from "./modals/LoginModal.svelte";
-  import Spinner from "./Spinner.svelte";
+  import { route } from "@mateothegreat/svelte5-router";
 
   /**
    * @param {string} input
@@ -98,7 +98,7 @@
 
 <nav>
   <h1>
-    <a href="#">
+    <a href="/" use:route>
       <NotebookPen/>
       To-Do
     </a>
@@ -128,6 +128,12 @@
                 </button>
               </header>
               <article class="sidebar-content">
+                {#if $userJwtContents.roles.some(role => role == 'access_admin') }
+                  <a class="btn" href="/access" use:route>
+                    <UserLock/>
+                    Access Control
+                  </a>
+                {/if}
                 <button class="btn" onclick={() => logout()}>
                   <LogOut/>
                   Logout
