@@ -1,0 +1,84 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  AWS_REGION: af-south-1
+  PROJECT_NAME: todo-app
+  ENVIRONMENT: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+
+    - name: Terraform Init and Apply
+      working-directory: ./infrastructure
+      run: |
+        terraform init
+        terraform apply -auto-approve
+
+    - name: Wait for RDS
+      run: |
+        aws rds wait db-instance-available \
+          --db-instance-identifier ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-db \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Get ECR URLs
+      working-directory: ./infrastructure
+      run: |
+        echo "BACKEND_ECR_URL=$(terraform output -raw backend_ecr_repository_url)" >> $GITHUB_ENV
+        echo "FRONTEND_ECR_URL=$(terraform output -raw frontend_ecr_repository_url)" >> $GITHUB_ENV
+
+    - name: Login to ECR
+      run: |
+        aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+        docker login --username AWS --password-stdin ${{ env.BACKEND_ECR_URL }}
+
+    - name: Build and push backend
+      run: |
+        docker build -f backend.Dockerfile -t ${{ env.PROJECT_NAME }}-backend .
+        docker tag ${{ env.PROJECT_NAME }}-backend:latest ${{ env.BACKEND_ECR_URL }}:latest
+        docker push ${{ env.BACKEND_ECR_URL }}:latest
+
+    - name: Build and push frontend
+      run: |
+        docker build -f frontend.Dockerfile -t ${{ env.PROJECT_NAME }}-frontend .
+        docker tag ${{ env.PROJECT_NAME }}-frontend:latest ${{ env.FRONTEND_ECR_URL }}:latest
+        docker push ${{ env.FRONTEND_ECR_URL }}:latest
+
+    - name: Update ECS with new images
+      working-directory: ./infrastructure
+      run: |
+        terraform apply -auto-approve \
+          -var="backend_image=${{ env.BACKEND_ECR_URL }}:latest" \
+          -var="frontend_image=${{ env.FRONTEND_ECR_URL }}:latest"
+
+    - name: Get deployment info
+      working-directory: ./infrastructure
+      run: |
+        ALB_DNS=$(terraform output -raw alb_dns_name)
+        echo "Deployed at: http://$ALB_DNS"
+        echo "API: http://$ALB_DNS/api/"
