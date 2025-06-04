@@ -69,7 +69,7 @@ export class AppError extends Error {
 /**
  * @typedef {(
  *     ErrorResponseType<'internal_server_error', 500> |
- *     ErrorResponseType<'validation_error', 400, import('zod/v4/core').$ZodErrorTree<unknown>> |
+ *     ErrorResponseType<'validation_error', 400, import('zod/v4/core').$ZodErrorTree<any>> |
  *     ErrorResponseType<'bad_request', 400> |
  *     ErrorResponseType<'not_found', 404> |
  *     ErrorResponseType<'unprocessable_content', 422> |
