@@ -1,13 +1,9 @@
-data "aws_secretsmanager_secret" "existing_app_secrets" {
-  name = "${var.project_name}-${var.environment}-secrets"
-}
-
-data "aws_secretsmanager_secret_version" "existing_app_secrets" {
-  secret_id = data.aws_secretsmanager_secret.existing_app_secrets.id
+data "aws_secretsmanager_secret_version" "app_secrets" {
+  secret_id = data.aws_secretsmanager_secret.app_secrets.id
 }
 
 locals {
-  existing_secrets = jsondecode(data.aws_secretsmanager_secret_version.existing_app_secrets.secret_string)
+  secrets = jsondecode(data.aws_secretsmanager_secret_version.app_secrets.secret_string)
 }
 
 resource "aws_db_subnet_group" "main" {
@@ -51,7 +47,7 @@ resource "aws_db_instance" "postgres" {
 
   db_name  = var.db_name
   username = var.db_username
-  password = local.existing_secrets.DB_PASSWORD
+  password = local.secrets.DB_PASSWORD
   port     = 5432
 
   vpc_security_group_ids = [aws_security_group.rds.id]

@@ -127,15 +127,15 @@ resource "aws_ecs_task_definition" "backend" {
       secrets = [
         {
           name      = "MASTER_KEY_2FA"
-          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:MASTER_KEY_2FA::"
+          valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:MASTER_KEY_2FA::"
         },
         {
           name      = "JWT_SECRET"
-          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:JWT_SECRET::"
+          valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:JWT_SECRET::"
         },
         {
           name      = "DB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DB_PASSWORD::"
+          valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:DB_PASSWORD::"
         }
       ]
       
@@ -235,7 +235,8 @@ resource "aws_ecs_service" "backend" {
   }
 
   depends_on = [
-    aws_lb_listener.main,
+    aws_lb_listener.https,
+    aws_lb_listener.http_redirect,
     aws_iam_role_policy_attachment.ecs_task_execution_role_policy
   ]
 
@@ -265,7 +266,8 @@ resource "aws_ecs_service" "frontend" {
   }
 
   depends_on = [
-    aws_lb_listener.main,
+    aws_lb_listener.https,
+    aws_lb_listener.http_redirect,
     aws_iam_role_policy_attachment.ecs_task_execution_role_policy
   ]
 
