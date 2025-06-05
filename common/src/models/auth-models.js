@@ -61,10 +61,3 @@ export const JwtContentsSchema = z.object({
 /**
  * @typedef {z.infer<typeof JwtContentsSchema>} JwtContents
  */
-
-/**
- * @typedef {{
- *     user: User,
- *     totpUri: string,
- * }} RegisterResponse
- */

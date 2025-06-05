@@ -19,7 +19,22 @@
   let showMenu = $state(false);
   let showLogin = $state(false);
   let showRegister = $state(false);
-  let gravatarHashPromise = $derived($userJwtContents && window.crypto ? hashSha256Hex($userJwtContents.user.email.trim().toLowerCase()) : null);
+  let initials = $derived(($userJwtContents?.user?.name ?? '').split(' ').map(n => n.substring(0, 1).toUpperCase()).join(''));
+  let profileLogoSrc = $state('');
+
+  /** @type {Promise | null} */
+  let logoutPromise = $state(null);
+
+  $effect(() => {
+    (async () => {
+      if ($userJwtContents && window.crypto) {
+        const hash = await hashSha256Hex($userJwtContents.user.email.trim().toLowerCase());
+        profileLogoSrc = `https://gravatar.com/avatar/${hash}?d=identicon`;
+      } else {
+        profileLogoSrc = '';
+      }
+    })()
+  })
 </script>
 
 <style>
@@ -41,6 +56,10 @@
     }
 
     img.profile-icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: lightgrey;
       width: 1.75rem;
       height: 1.75rem;
       border-radius: calc(1px * infinity);
@@ -73,7 +92,6 @@
       padding: 0.5rem;
       display: flex;
       gap: 2rem;
-      font-size: 1rem;
       justify-content: space-between;
       align-items: center;
     }
@@ -82,6 +100,7 @@
       display: flex;
       gap: 0.5rem;
       align-items: center;
+      color: black;
     }
 
     .sidebar-close {
@@ -104,53 +123,63 @@
     </a>
   </h1>
   <div>
-    <!-- svelte-ignore block_empty -->
-    {#await gravatarHashPromise}
-    {:then gravatarHash} 
-      {#if gravatarHash && $userJwtContents}
-        <button class="open-menu-button" onclick={() => showMenu = true} aria-label="open menu">
-          <ChevronDown/>
-          <img class="profile-icon" src="https://gravatar.com/avatar/{gravatarHash}?d=identicon" alt={$userJwtContents.user.name}/>
-        </button>
-        {#if showMenu}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div transition:fade={{ duration: 150 }} class="grey-zone" onclick={() => showMenu = false}>
-            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-            <aside transition:fly={{ duration: 150, x: 150 }} onclick={e => e.stopPropagation()}>
-              <header>
-                <button class="profile-button" aria-label="close menu">
-                  <img class="profile-icon" src="https://gravatar.com/avatar/{gravatarHash}?d=identicon" alt={$userJwtContents.user.name}/>
-                  {$userJwtContents.user.name}
+    {#if $userJwtContents}
+      <button class="open-menu-button" onclick={() => showMenu = true} aria-label="open menu">
+        <ChevronDown/>
+        <img class="profile-icon" src={profileLogoSrc} alt={initials}/>
+      </button>
+      {#if showMenu}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div transition:fade={{ duration: 150 }} class="grey-zone" onclick={() => showMenu = false}>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <aside transition:fly={{ duration: 150, x: 150 }} onclick={e => e.stopPropagation()}>
+            <header>
+              <button class="profile-button" aria-label="close menu">
+                <img class="profile-icon" src={profileLogoSrc} alt={initials}/>
+                {$userJwtContents.user.name}
+              </button>
+              <button class="sidebar-close btn btn-small" onclick={() => showMenu = false}>
+                <X class="full"/>
+              </button>
+            </header>
+            <article class="sidebar-content">
+              {#if logoutPromise}
+                <button class="btn" disabled>
+                  <Spinner/>
+                  Logout
                 </button>
-                <button class="sidebar-close btn btn-small" onclick={() => showMenu = false}>
-                  <X class="full"/>
-                </button>
-              </header>
-              <article class="sidebar-content">
-                <button class="btn" onclick={() => logout()}>
+              {:else}
+                <button class="btn" onclick={() => logoutPromise = logout().then(() => logoutPromise = null)}>
                   <LogOut/>
                   Logout
                 </button>
-                <button class="btn" onclick={() => logout(true)}>
+              {/if}
+              {#if logoutPromise}
+                <button class="btn" disabled>
+                  <Spinner/>
+                  Logout from All Devices
+                </button>
+              {:else}
+                <button class="btn" onclick={() => logoutPromise = logout(true).then(() => logoutPromise = null)}>
                   <LogOut/>
                   Logout from All Devices
                 </button>
-              </article>
-            </aside>
-          </div>
-        {/if}
-      {:else}
-        <div class="login-btns">
-          <button class="btn" onclick={() => showLogin = true}>
-            Sign In
-          </button>
-          <button class="btn btn-outline" onclick={() => showRegister = true}>
-            Register
-          </button>
+              {/if}
+            </article>
+          </aside>
         </div>
       {/if}
-    {/await}
+    {:else}
+      <div class="login-btns">
+        <button class="btn" onclick={() => showLogin = true}>
+          Sign In
+        </button>
+        <button class="btn btn-outline" onclick={() => showRegister = true}>
+          Register
+        </button>
+      </div>
+    {/if}
   </div>
 </nav>
 
