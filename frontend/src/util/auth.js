@@ -25,16 +25,12 @@ export const login = async (request) => {
  */
 export const register = async (request) => {
     /**
-     * @type {import("./http").ApiResult<import("common").RegisterResponse> | null}
+     * @type {import("./http").ApiResult<string> | null}
      */
     const result = await apiFetch(`/auth/register`, 'POST', request);
 
     if (!result)
         return null;
-
-    if ('ok' in result) {
-        await whoami();
-    }
 
     return result;
 };
