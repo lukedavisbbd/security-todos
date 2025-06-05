@@ -85,14 +85,17 @@ export const authenticated = async (req, res, next) => {
  */
 export const requireRole = (roleRequirement) => {
     /**
-     * @param {import('src').AuthenticatedRequest} req 
+     * @param {import('express').Request} req 
      * @param {import('express').Response} res 
      * @param {import('express').NextFunction} next 
      */
     const middleware = async (req, res, next) => {
         await authenticateByJwt(req, res);
+
+        // assert that authenticateByJwt has turned req into an AuthenticatedRequest
+        const authReq = /** @type {import('src/index.js').AuthenticatedRequest} */(req);
         
-        if (!req.jwtContents.roles.includes(roleRequirement)) {
+        if (!authReq.jwtContents.roles.includes(roleRequirement)) {
             throw new AppError({
                 code: 'missing_role',
                 status: 403,

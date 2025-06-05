@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@lucide/svelte": "^0.511.0",
+    "@mateothegreat/svelte5-router": "^2.15.3",
     "@types/qrcode": "^1.5.5",
     "common": "file:../common",
     "qrcode": "^1.5.4",
