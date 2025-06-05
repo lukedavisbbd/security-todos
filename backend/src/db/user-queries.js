@@ -79,6 +79,40 @@ const mapRowToUserInfo = (row) => {
 };
 
 /**
+ * @param {string | undefined} search
+ * @returns {Promise<import('common').UserWithRoles[]>}
+ */
+export const searchUsers = async (search) => {
+    const result = await pool.query(
+        `SELECT user_id, email, name, email_verified, role_name FROM users NATURAL LEFT JOIN user_roles NATURAL LEFT JOIN roles
+        WHERE name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%' LIMIT 100`,
+        [search ?? '']
+    );
+
+    /** @type {import('common').UserWithRoles[]} */
+    const users = [];
+    
+    result.rows.forEach(row => {
+        const existing = users.find(user => user.user.userId == row.user_id);
+        if (existing && row.role_name) {
+            existing.roles.push(row.role_name);
+        } else {
+            users.push({
+                user: {
+                    userId: row.user_id,
+                    name: row.name,
+                    email: row.email,
+                    emailVerified: row.email_verified,
+                },
+                roles: row.role_name ? [row.role_name] : [],
+            })
+        }
+    });
+    
+    return users;
+};
+
+/**
  * @param {number} userId
  */
 export const fetchRoles = async (userId) => {

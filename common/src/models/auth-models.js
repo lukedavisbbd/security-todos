@@ -53,10 +53,16 @@ export const UserSchema = z.object({
  * @typedef {z.infer<typeof UserSchema>} User
  */
 
-export const JwtContentsSchema = z.object({
+export const UserWithRolesSchema = z.object({
     user: UserSchema,
     roles: z.array(z.string()),
 });
+
+/**
+ * @typedef {z.infer<typeof UserWithRolesSchema>} UserWithRoles
+ */
+
+export const JwtContentsSchema = UserWithRolesSchema;
 
 /**
  * @typedef {z.infer<typeof JwtContentsSchema>} JwtContents

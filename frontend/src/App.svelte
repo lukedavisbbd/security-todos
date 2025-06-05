@@ -5,6 +5,7 @@
   import Home from "./pages/Home.svelte";
   import { Router } from "@mateothegreat/svelte5-router";
   import AccessControl from "./pages/AccessControl.svelte";
+  import Navbar from "./lib/Navbar.svelte";
 
   onMount(() => {
     whoami();
@@ -27,5 +28,7 @@
     },
   ];
 </script>
+
+<Navbar/>
 
 <Router {routes}/>
