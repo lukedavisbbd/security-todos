@@ -6,6 +6,18 @@
     import { login } from "../../util/auth";
     import { z } from "zod/v4";
 
+    /**
+     * @param {MouseEvent | KeyboardEvent} e
+     */
+    const tryClose = (e) => {
+        if (e instanceof KeyboardEvent && e.key != 'Escape') {
+            return;
+        }
+        if (!loginPromise) {
+            close();
+        }
+    };
+
     const performLogin = async () => {
         enterTwoFactor = false;
         loginErrors = null;
@@ -17,7 +29,6 @@
         });
 
         if (request.error) {
-            loginPromise = null;
             loginErrors = z.treeifyError(request.error);
             return;
         }
@@ -25,7 +36,6 @@
         const result = await login(request.data);
 
         if (!result) {
-            loginPromise = null;
             loginErrors = {
                 errors: ['Failed to sign in.'],
             };
@@ -33,10 +43,8 @@
         }
         
         if ('ok' in result) {
-            loginPromise = null;
             close();
         } else {
-            loginPromise = null;
             loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
                 result.err.data
             );
@@ -75,18 +83,14 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={() => { if (!loginPromise) { close() } }}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
-        {#if loginPromise && !loginErrors}
-            {#await loginPromise}
-                <article>
-                    <div class="loader-wrapper">
-                        <Spinner/>
-                    </div>
-                </article>
-            {:then}
-                <!-- svelte-ignore block_empty -->
-            {/await}
+        {#if loginPromise}
+            <article>
+                <div class="loader-wrapper">
+                    <Spinner/>
+                </div>
+            </article>
         {:else}
             <header>
                 Sign In
@@ -104,7 +108,6 @@
                     });
 
                     if (request.error) {
-                        loginPromise = null;
                         loginErrors = z.treeifyError(request.error);
                         return;
                     }
@@ -112,7 +115,9 @@
                     enterTwoFactor = true;
                     return;
                 }
-                loginPromise = performLogin();
+                loginPromise = performLogin().then(() => {
+                    loginPromise = null;
+                });
             }}>
                 <article>
                     {#if enterTwoFactor}
@@ -121,7 +126,7 @@
                             <input
                                 bind:value={twoFactor} type="text" name="two-factor" id="two-factor"
                                 placeholder="••••••" autocomplete="one-time-code webauthn" class="two-factor"
-                                required minlength="6" maxlength="6"
+                                required minlength="6" maxlength="6" pattern="[0-9]{'{6}'}"
                             >
                             {#if loginErrors?.properties?.twoFactor?.errors?.at(0)}
                                 <p class="error">{loginErrors.properties.twoFactor.errors[0]}</p>

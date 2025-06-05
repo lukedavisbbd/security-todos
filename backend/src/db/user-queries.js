@@ -275,37 +275,7 @@ export const registerUser = async (request) => {
     const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
 
-    /**
-     * @type {import('common').User}
-     */
-    const user = {
-        userId: userInfo.userId,
-        email: userInfo.email,
-        name: userInfo.name,
-        emailVerified: userInfo.emailVerified,
-    };
-
     const totpUri = authenticator.generateTotpUri(twoFactorKey, request.email, 'To-Do App', 'SHA1', 6, 30);
 
-    /**
-     * @type {import('common').RegisterResponse}
-     */
-    const response = {
-        user,
-        totpUri,
-    };
-
-    /**
-     * @type {import('common').JwtContents}
-     */
-    const jwtContents = {
-        user,
-        roles: await fetchRoles(user.userId),
-    };
-
-    return {
-        response,
-        jwtContents,
-        refreshToken,
-    };
+    return totpUri;
 };
