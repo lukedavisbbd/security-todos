@@ -329,3 +329,18 @@ export const registerUser = async (request) => {
 
     return totpUri;
 };
+
+/**
+ * Get a user record (user_id, email) by its numeric ID.
+ * @param {number} userId
+ * @returns {Promise<{ user_id: number, email: string } | null>}
+ */
+export async function getUserById(userId) {
+  const result = await pool.query(
+    `SELECT user_id, email
+     FROM users
+     WHERE user_id = $1`,
+    [userId]
+  );
+  return result.rows[0] || null;
+}
