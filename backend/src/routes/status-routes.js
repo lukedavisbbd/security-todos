@@ -1,47 +1,50 @@
 import express from "express";
 import { statusService } from "../services/status-service.js";
-import { z } from "zod";
+import rateLimit from "express-rate-limit";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+// Apply rate limiting to all status routes
+const statusRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: { message: "Too many requests, please try again later." },
+});
+
+router.use(statusRateLimiter);
+
+router.get("/", async (req, res, next) => {
   try {
     const statuses = await statusService.getAllStatuses();
     res.json(statuses);
   } catch (error) {
-    console.error("Error getting all statuses:", error);
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     const status = await statusService.getStatusById(id);
+
     if (!status) {
       res.status(404).json({ message: "Status not found" });
     } else {
       res.json(status);
     }
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-    }
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req, res, next) => {
   try {
     const newStatus = await statusService.createStatus(req.body);
     res.status(201).json(newStatus);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-    } else {
-      res.status(500).json({ message: "Internal server error" });
-      console.log("Error creating status:", error);
-    }
+    next(error);
   }
 });
 
