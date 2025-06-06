@@ -16,7 +16,7 @@
   nav {
     display: flex;
     padding: 0.75rem 2rem;
-    box-shadow: 0 0.5rem 0.5rem #0001;
+    box-shadow: 0 0.25rem 0.25rem #0001;
     justify-content: space-between;
     align-items: center;
 
