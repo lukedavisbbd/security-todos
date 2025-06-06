@@ -32,10 +32,8 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
             err: await resp.json()
         };
 
-        if ('err' in result) {
-            if (result.err.code === 'not_logged_in') {
-                userJwtContents.set(null);
-            }
+        if ('err' in result && result.err.code === 'not_logged_in') {
+            userJwtContents.set(null);
         }
 
         return result;

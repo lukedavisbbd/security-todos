@@ -11,6 +11,6 @@ router.get('/', (_req, res) => {
 });
 
 router.use('/auth', authRoutes);
-router.use('/access-control', accessControlRoutes);
+router.use(accessControlRoutes);
 
 export default router;

@@ -49,6 +49,8 @@
                 result.err.data
             );
         }
+
+        twoFactor = '';
     };
 
     /** @type {{ close: () => void }} */
