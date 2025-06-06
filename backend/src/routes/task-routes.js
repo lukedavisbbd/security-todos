@@ -1,4 +1,10 @@
-import { AppError } from 'common';
+import { 
+    AppError, 
+    CreateTaskSchema,
+    UpdateTaskDetailsSchema,
+    UpdateStatusSchema,
+    AssignTaskSchema 
+} from 'common';
 import { Router } from 'express';
 import {
     getTasksForUser,
@@ -11,12 +17,6 @@ import {
     deleteTask
 } from '../db/task-queries.js';
 import { authenticated, requireRole  } from '../middleware/auth-middleware.js';
-import {
-  CreateTaskSchema,
-  UpdateTaskDetailsSchema,
-  UpdateStatusSchema,
-  AssignTaskSchema,
-} from '../../../common/src/models/task-models.js';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { AppError } from 'common';
+import { AppError, RoleSchema } from 'common';
 
 import {
   assignRole,
@@ -9,7 +9,6 @@ import {
 } from '../db/admin-queries.js';
 
 import { authenticated, requireRole } from '../middleware/auth-middleware.js';
-import { RoleSchema } from '../../../common/src/models/admin-models.js';
 
 const router = Router();
 

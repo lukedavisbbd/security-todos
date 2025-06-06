@@ -15,7 +15,10 @@ INSERT INTO statuses (status_name)
 SELECT s.status_name
 FROM (VALUES
     ('open'),
-    ('closed')
+    ('closed'),
+    ('todo'),
+    ('in-progress'),
+    ('discarded')
 ) AS s(status_name)
 WHERE NOT EXISTS (
   SELECT 1 FROM statuses WHERE statuses.status_name = s.status_name

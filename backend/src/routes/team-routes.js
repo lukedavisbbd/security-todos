@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { AppError } from 'common';
+import { AppError, CreateTeamSchema, AddUserToTeamSchema } from 'common';
 
 import {
   createTeam,
@@ -11,7 +11,6 @@ import {
 } from '../db/team-queries.js';
 
 import { authenticated, requireRole } from '../middleware/auth-middleware.js';
-import { CreateTeamSchema, AddUserToTeamSchema } from '../../../common/src/models/team-models.js';
 
 const router = Router();
 
