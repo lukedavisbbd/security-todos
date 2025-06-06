@@ -7,3 +7,11 @@ export const UserSearchQuerySchema = z.object({
 /**
  * @typedef {z.infer<typeof UserSearchQuerySchema>} UserSearchQuery
  */
+
+export const RoleRequestSchema = z.object({
+    role: z.string().nonempty(),
+});
+
+/**
+ * @typedef {z.infer<typeof RoleRequestSchema>} AddRoleRequest
+ */
