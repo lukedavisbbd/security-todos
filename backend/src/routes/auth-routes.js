@@ -32,8 +32,7 @@ router.post('/register', async (req, res) => {
     const registerDetail = await registerUser(registerReq);
 
     if (registerDetail) {
-        setAuthCookies(res, registerDetail.jwtContents, registerDetail.refreshToken);
-        res.json(registerDetail.response);
+        res.json(registerDetail);
     } else {
         throw new AppError({
             code: 'validation_error',

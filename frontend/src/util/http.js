@@ -10,32 +10,36 @@ import { userJwtContents } from "./stores";
  * @template B
  * @param {string} path
  * @param {string} method
- * @param {B} body
+ * @param {B | undefined} body
  */
 export const apiFetch = async (path, method = 'GET', body = undefined) => {
-    const resp = await fetch(`/api${path}`, {
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        method,
-        body: JSON.stringify(body)
-    });
+    try {
+        const resp = await fetch(`/api${path}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            method,
+            body: JSON.stringify(body),
+        });
 
-    /**
-     * @type {ApiResult<T>}
-     */
-    const result = resp.ok ? {
-        ok: await resp.json(),
-    } : {
-        err: await resp.json()
-    };
+        /**
+         * @type {ApiResult<T>}
+         */
+        const result = resp.ok ? {
+            ok: await resp.json(),
+        } : {
+            err: await resp.json()
+        };
 
-    if ('err' in result) {
-        if (result.err.code === 'not_logged_in') {
-            userJwtContents.set(null);
+        if ('err' in result) {
+            if (result.err.code === 'not_logged_in') {
+                userJwtContents.set(null);
+            }
         }
-    }
 
-    return result;
+        return result;
+    } catch {
+        return null;
+    }
 };
