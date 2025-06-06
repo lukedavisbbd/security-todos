@@ -19,7 +19,7 @@ export async function createTeam(ownerId, teamName) {
 /**
  * Get all teams led by a specific user.
  * @param {number} ownerId
- * @returns {Promise<Array>}
+ * @returns {Promise<Array<any>>}
  */
 export async function getTeamsLedByUser(ownerId) {
     const result = await pool.query(
@@ -63,7 +63,7 @@ export async function removeUserFromTeam(userId, teamId) {
 /**
  * Get all teams to which a user belongs.
  * @param {number} userId
- * @returns {Promise<Array>}
+ * @returns {Promise<Array<any>>}
  */
 export async function getTeamsForUser(userId) {
     const result = await pool.query(

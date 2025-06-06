@@ -3,7 +3,7 @@ import { pool } from './pool.js';
 /**
  * Get all tasks assigned to a specific user.
  * @param {number} userId
- * @returns {Promise<Array>}
+ * @returns {Promise<Array<any>>}
  */
 export async function getTasksForUser(userId) {
     const result = await pool.query(
@@ -19,7 +19,7 @@ export async function getTasksForUser(userId) {
 /**
  * Get all tasks for a specific team.
  * @param {number} teamId
- * @returns {Promise<Array>}
+ * @returns {Promise<Array<any>>}
  */
 export async function getTasksForTeam(teamId) {
     const result = await pool.query(
@@ -53,10 +53,10 @@ export async function getTaskById(taskId) {
  * Create a new task.
  * @param {Object} task
  * @param {number} task.teamId
- * @param {number} task.assignedToId
+ * @param {number | undefined} task.assignedToId
  * @param {number} task.statusId
  * @param {string} task.name
- * @param {string} task.content
+ * @param {string | undefined} task.content
  * @returns {Promise<Object>}
  */
 export async function createTask({ teamId, assignedToId, statusId, name, content }) {
@@ -86,7 +86,7 @@ export async function updateTaskStatus(taskId, statusId) {
  * Update task name and content.
  * @param {number} taskId
  * @param {string} name
- * @param {string} content
+ * @param {string | undefined} content
  * @returns {Promise<void>}
  */
 export async function updateTaskDetails(taskId, name, content) {
