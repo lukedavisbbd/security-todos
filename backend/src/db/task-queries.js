@@ -117,3 +117,38 @@ export async function deleteTask(taskId) {
         [taskId]
     );
 }
+
+/**
+ * Get task history with status and user information
+ * @param {number} taskId
+ * @returns {Promise<Array<{
+ *   history_id: number,
+ *   task_id: number,
+ *   status_id: number,
+ *   status_name: string,
+ *   assigned_to_id: number | null,
+ *   assigned_to_name: string | null,
+ *   assigned_to_email: string | null,
+ *   timestamp: Date
+ * }>>}
+ */
+export async function getTaskHistory(taskId) {
+    const result = await pool.query(
+        `SELECT 
+            h.history_id,
+            h.task_id,
+            h.status_id,
+            s.status_name,
+            h.assigned_to_id,
+            u.name as assigned_to_name,
+            u.email as assigned_to_email,
+            h.timestamp
+         FROM history h
+         JOIN statuses s ON h.status_id = s.status_id
+         LEFT JOIN users u ON h.assigned_to_id = u.user_id
+         WHERE h.task_id = $1
+         ORDER BY h.timestamp ASC`,
+        [taskId]
+    );
+    return result.rows;
+}

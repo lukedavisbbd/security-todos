@@ -1,6 +1,7 @@
 <script>
     import { Plus, Edit, History } from "@lucide/svelte";
     import { updateTaskStatus, assignTaskToUser } from "../../util/tasks";
+  import { route } from "@mateothegreat/svelte5-router";
 
     /** @type {{ 
      *   tasks: import('common').TaskWithAssignee[], 
@@ -82,14 +83,6 @@
         }
     };
 
-    /**
-     * Handle view history (placeholder)
-     * @param {import('common').TaskWithAssignee} task
-     */
-    const handleViewHistory = (task) => {
-        // Placeholder for future implementation
-        alert(`History for task: ${task.task_name}\n\nThis feature will show the task's status and assignment history.`);
-    };
 </script>
 
 <style>
@@ -351,14 +344,14 @@
                         </div>
                         
                         <div class="task-actions">
-                            <button 
+                            <a
                                 class="btn btn-outline" 
-                                onclick={() => handleViewHistory(task)}
-                                title="View Task History"
+                                href="/history/{task.task_id}"
+                                use:route
                             >
                                 <History/>
                                 History
-                            </button>
+                            </a>
                             <button 
                                 class="btn btn-outline" 
                                 onclick={() => onEditTask(task)}

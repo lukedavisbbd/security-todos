@@ -75,3 +75,23 @@ export const assignTaskToUser = async (taskId, userId) => {
 export const deleteTask = async (taskId) => {
     return await apiFetch(`/tasks/${taskId}`, 'DELETE');
 };
+
+// Add this to frontend/src/util/tasks.js
+
+/**
+ * Get task history
+ * @param {number} taskId
+ * @returns {Promise<import("./http").ApiResult<Array<{
+ *   history_id: number,
+ *   task_id: number,
+ *   status_id: number,
+ *   status_name: string,
+ *   assigned_to_id: number | null,
+ *   assigned_to_name: string | null,
+ *   assigned_to_email: string | null,
+ *   timestamp: string
+ * }>> | null>}
+ */
+export const getTaskHistory = async (taskId) => {
+    return await apiFetch(`/tasks/${taskId}/history`);
+};

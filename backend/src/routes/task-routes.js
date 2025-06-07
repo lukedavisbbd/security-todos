@@ -14,7 +14,8 @@ import {
     updateTaskStatus,
     updateTaskDetails,
     assignTaskToUser,
-    deleteTask
+    deleteTask,
+    getTaskHistory
 } from '../db/task-queries.js';
 import { getTeamsForUser, isTeamOwner, getTeamById } from '../db/team-queries.js';
 import { authenticated } from '../middleware/auth-middleware.js';
@@ -382,6 +383,53 @@ router.delete('/:id', authenticated, async (req, res) => {
 
     await deleteTask(taskId);
     res.json({ message: 'Task deleted' });
+});
+
+/**
+ * Get task history
+ * @param {import('../index.js').AuthenticatedRequest} req 
+ * @param {import('express').Response} res 
+ */
+router.get('/:id/history', authenticated, async (req, res) => {
+    const taskId = Number(req.params.id);
+    // @ts-ignore - jwtContents is added by authenticated middleware
+    const currentUserId = req.jwtContents.user.userId;
+    
+    if (isNaN(taskId)) {
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'Validation Error',
+            data: {
+                errors: ['Invalid task ID']
+            },
+        });
+    }
+
+    const task = await getTaskById(taskId);
+    if (!task) {
+        throw new AppError({
+            code: 'not_found',
+            status: 404,
+            message: 'Task not found',
+            data: undefined,
+        });
+    }
+    
+    const isOwner = await isTeamOwner(task.team_id, currentUserId);
+    const hasAccess = await hasTeamAccess(task.team_id, currentUserId);
+    
+    if (!hasAccess && !isOwner) {
+        throw new AppError({
+            code: 'missing_role',
+            status: 403,
+            message: 'Not authorized to view this task history',
+            data: undefined,
+        });
+    }
+
+    const history = await getTaskHistory(taskId);
+    res.json(history);
 });
 
 export default router;

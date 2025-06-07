@@ -5,6 +5,7 @@
   import Home from "./pages/Home.svelte";
   import Teams from "./pages/Teams.svelte";
   import TeamDetail from "./pages/TeamDetail.svelte";
+  import TaskHistory from "./pages/TaskHistory.svelte";
   import { Router } from "@mateothegreat/svelte5-router";
   import AccessControl from "./pages/AccessControl.svelte";
   import Navbar from "./lib/Navbar.svelte";
@@ -31,6 +32,10 @@
     {
       path: "/team/(?<teamId>.*)",
       component: TeamDetail,
+    },
+    {
+      path: "/history/(?<taskId>.*)",
+        component: TaskHistory
     },
     {
       path: "/access",
