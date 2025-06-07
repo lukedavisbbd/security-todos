@@ -13,7 +13,14 @@ export async function assignRole(userId, roleName) {
         [roleName]
     );
     if (roleResult.rows.length === 0) {
-        throw new AppError(`Role '${roleName}' does not exist`, 400);
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: `Validation Error`,
+            data: {
+                errors: [`Role '${roleName}' does not exist`]
+            }
+        });
     }
     const roleId = roleResult.rows[0].role_id;
 
@@ -22,11 +29,21 @@ export async function assignRole(userId, roleName) {
             'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)',
             [userId, roleId]
         );
-    } catch (err) {
-        if (err.code === '23505') {
-            throw new AppError('User already has this role', 400);
+    } catch (
+        /** @type {unknown} */ _error
+    ) {
+        /** @type {any} */ const error = _error;
+        if (error.code === '23505') {
+            throw new AppError({
+                code: 'validation_error',
+                status: 400,
+                message: 'Validation Error',
+                data: {
+                    errors: ['User already has this role']
+                }
+            });
         }
-        throw err;
+        throw error;
     }
 }
 
@@ -42,7 +59,14 @@ export async function revokeRole(userId, roleName) {
         [roleName]
     );
     if (roleResult.rows.length === 0) {
-        throw new AppError(`Role '${roleName}' does not exist`, 400);
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: `Role '${roleName}' does not exist`,
+            data: {
+                errors: [`Role '${roleName}' does not exist`]
+            }
+        });
     }
     const roleId = roleResult.rows[0].role_id;
 
@@ -51,7 +75,14 @@ export async function revokeRole(userId, roleName) {
         [userId, roleId]
     );
     if (deleteResult.rowCount === 0) {
-        throw new AppError('User does not have this role', 400);
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'User already has this role',
+            data: {
+                errors: ['User already has this role']
+            }
+        });
     }
 }
 

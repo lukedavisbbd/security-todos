@@ -1,5 +1,8 @@
 <script>
-  import { userInitials, userProfileLogoSrc } from "../util/stores";
+    import { userInitials, userProfileLogoSrc } from "../util/stores";
+
+    /** @type {{ logoSrc?: Promise<string>, initials?: string }} */
+    let { logoSrc, initials } = $props();
 </script>
 
 <style>
@@ -14,8 +17,8 @@
     }
 </style>
 
-{#await $userProfileLogoSrc}
-    <img alt={$userInitials}/>
+{#await logoSrc ?? $userProfileLogoSrc}
+    <img alt={initials ?? $userInitials}/>
 {:then logoSrc}
-    <img src={logoSrc} alt={$userInitials}/>
+    <img src={logoSrc} alt={initials ?? $userInitials}/>
 {/await}

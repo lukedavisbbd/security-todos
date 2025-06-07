@@ -115,9 +115,25 @@ export const searchUsers = async (search) => {
 /**
  * @param {number} userId
  */
-export const fetchRoles = async (userId) => {
-    const result = await pool.query('SELECT role_name FROM user_roles NATURAL JOIN roles WHERE user_id = $1', [userId]);
+export const fetchUserRoles = async (userId) => {
+    const result = await pool.query('SELECT role_name FROM user_roles NATURAL JOIN roles WHERE user_id = $1 ORDER BY role_name', [userId]);
     return result.rows.map(row => /** @type {string} */ (row.role_name));
+};
+
+/**
+ * @param {number} userId
+ * @param {string} role
+ */
+export const addUserRole = async (userId, role) => {
+    await pool.query('insert into user_roles values ($1, (select role_id from roles where role_name = $2));', [userId, role]);
+};
+
+/**
+ * @param {number} userId
+ * @param {string} role
+ */
+export const deleteUserRole = async (userId, role) => {
+    await pool.query('delete from user_roles where user_id = $1 and role_id in (select role_id from roles where role_name = $2);', [userId, role]);
 };
 
 /**
@@ -196,7 +212,7 @@ export const loginWithToken = async (userId, refreshToken) => {
      */
     const jwtContents = {
         user,
-        roles: await fetchRoles(user.userId),
+        roles: await fetchUserRoles(user.userId),
     };
 
     return {
@@ -257,7 +273,7 @@ export const loginUser = async (request) => {
      */
     const jwtContents = {
         user,
-        roles: await fetchRoles(user.userId),
+        roles: await fetchUserRoles(user.userId),
     };
 
     return {
@@ -313,3 +329,18 @@ export const registerUser = async (request) => {
 
     return totpUri;
 };
+
+/**
+ * Get a user record (user_id, email) by its numeric ID.
+ * @param {number} userId
+ * @returns {Promise<{ user_id: number, email: string } | null>}
+ */
+export async function getUserById(userId) {
+  const result = await pool.query(
+    `SELECT user_id, email
+     FROM users
+     WHERE user_id = $1`,
+    [userId]
+  );
+  return result.rows[0] || null;
+}

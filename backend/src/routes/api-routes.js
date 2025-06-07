@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import authRoutes from './auth-routes.js';
+import accessControlRoutes from './access-control-routes.js';
 import taskRoutes from './task-routes.js';
 import teamRoutes from './team-routes.js';
 import adminRoutes from './admin-routes.js';
 import statusRoutes from './status-routes.js';
-import accessControlRoutes from './access-control-routes.js';
 
 const router = Router();
 

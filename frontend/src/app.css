@@ -142,7 +142,7 @@ button {
   background-color: green;
   color: white;
   
-  :not(:disabled) {
+  &:enabled:hover, &[href]:hover {
     background-color: darkgreen;
     color: #eee;
   }
@@ -152,8 +152,18 @@ button {
   background-color: #333;
   color: white;
   
-  :not(:disabled) {
+  &:enabled:hover, &[href]:hover {
     background-color: #444;
+    color: #eee;
+  }
+}
+
+.btn-danger {
+  background-color: #b00;
+  color: white;
+  
+  &:enabled:hover, &[href]:hover {
+    background-color: #900;
     color: #eee;
   }
 }
@@ -298,6 +308,45 @@ label.inline {
 
   + input {
     padding-top: 1.25rem;
+  }
+}
+
+.inline-icon {
+  .lucide-icon {
+    position: absolute;
+    font-size: 1.5rem;
+    margin-left: 0.6rem;
+    margin-top: 0.6rem;
+    color: #999;
+  }
+
+  input {
+    padding-left: 2.5rem;
+  }
+
+  label.inline {
+    &:has(+ input) {
+      position: absolute;
+      transform: translate(2.5rem, 0.65rem);
+      font-size: 0.85rem;
+      opacity: 0.75;
+      transition-duration: 150ms;
+    }
+
+    &:has(+ input:focus) {
+      font-size: 0.65rem;
+      transform: translate(2.5rem, 0.2rem);
+      color: blue;
+    }
+
+    &:has(+ input:not(:placeholder-shown)) {
+      font-size: 0.65rem;
+      transform: translate(2.5rem, 0.2rem);
+    }
+
+    + input {
+      padding-top: 1.25rem;
+    }
   }
 }
 
