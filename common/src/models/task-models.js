@@ -48,3 +48,46 @@ export const AssignTaskSchema = z.object({
     .int()
     .positive({ message: 'userId must be a positive integer' }),
 });
+
+export const TaskSchema = z.object({
+  task_id: z.number(),
+  task_name: z.string(),
+  task_content: z.string().nullable(),
+  status_id: z.number(),
+  status_name: z.string(),
+  assigned_to_id: z.number().nullable(),
+  team_id: z.number(),
+});
+
+export const TaskWithAssigneeSchema = z.object({
+  task_id: z.number(),
+  task_name: z.string(),
+  task_content: z.string().nullable(),
+  status_id: z.number(),
+  status_name: z.string(),
+  assigned_to_email: z.string().nullable(),
+});
+
+/**
+ * @typedef {z.infer<typeof CreateTaskSchema>} CreateTaskRequest
+ */
+
+/**
+ * @typedef {z.infer<typeof UpdateTaskDetailsSchema>} UpdateTaskDetailsRequest
+ */
+
+/**
+ * @typedef {z.infer<typeof UpdateStatusSchema>} UpdateStatusRequest
+ */
+
+/**
+ * @typedef {z.infer<typeof AssignTaskSchema>} AssignTaskRequest
+ */
+
+/**
+ * @typedef {z.infer<typeof TaskSchema>} Task
+ */
+
+/**
+ * @typedef {z.infer<typeof TaskWithAssigneeSchema>} TaskWithAssignee
+ */

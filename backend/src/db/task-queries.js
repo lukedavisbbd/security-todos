@@ -3,14 +3,15 @@ import { pool } from './pool.js';
 /**
  * Get all tasks assigned to a specific user.
  * @param {number} userId
- * @returns {Promise<Array<any>>}
+ * @returns {Promise<import('common').TaskWithAssignee[]>}
  */
 export async function getTasksForUser(userId) {
     const result = await pool.query(
         `SELECT t.task_id, t.task_name, t.task_content, t.status_id, s.status_name
          FROM tasks t
          JOIN statuses s ON t.status_id = s.status_id
-         WHERE t.assigned_to_id = $1`,
+         WHERE t.assigned_to_id = $1
+         ORDER BY t.task_id`,
         [userId]
     );
     return result.rows;
@@ -19,7 +20,7 @@ export async function getTasksForUser(userId) {
 /**
  * Get all tasks for a specific team.
  * @param {number} teamId
- * @returns {Promise<Array<any>>}
+ * @returns {Promise<import('common').TaskWithAssignee[]>}
  */
 export async function getTasksForTeam(teamId) {
     const result = await pool.query(
@@ -27,7 +28,8 @@ export async function getTasksForTeam(teamId) {
          FROM tasks t
          JOIN statuses s ON t.status_id = s.status_id
          LEFT JOIN users u ON t.assigned_to_id = u.user_id
-         WHERE t.team_id = $1`,
+         WHERE t.team_id = $1
+         ORDER BY t.task_id`,
         [teamId]
     );
     return result.rows;
@@ -36,7 +38,7 @@ export async function getTasksForTeam(teamId) {
 /**
  * Get a specific task by its ID.
  * @param {number} taskId
- * @returns {Promise<Object|null>}
+ * @returns {Promise<import('common').Task | null>}
  */
 export async function getTaskById(taskId) {
     const result = await pool.query(
@@ -51,19 +53,14 @@ export async function getTaskById(taskId) {
 
 /**
  * Create a new task.
- * @param {Object} task
- * @param {number} task.teamId
- * @param {number | undefined} task.assignedToId
- * @param {number} task.statusId
- * @param {string} task.name
- * @param {string | undefined} task.content
- * @returns {Promise<Object>}
+ * @param {import('common').CreateTaskRequest} task
+ * @returns {Promise<import('common').Task>}
  */
 export async function createTask({ teamId, assignedToId, statusId, name, content }) {
     const result = await pool.query(
         `INSERT INTO tasks (team_id, assigned_to_id, status_id, task_name, task_content)
          VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
+         RETURNING task_id, team_id, assigned_to_id, status_id, task_name, task_content`,
         [teamId, assignedToId, statusId, name, content]
     );
     return result.rows[0];

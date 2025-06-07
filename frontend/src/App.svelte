@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { userJwtContents } from "./util/stores";
   import Home from "./pages/Home.svelte";
+  import Teams from "./pages/Teams.svelte";
   import { Router } from "@mateothegreat/svelte5-router";
   import AccessControl from "./pages/AccessControl.svelte";
   import Navbar from "./lib/Navbar.svelte";
@@ -21,6 +22,10 @@
   const routes = [
     {
       component: Home,
+    },
+    {
+      path: "/teams",
+      component: Teams,
     },
     {
       path: "/access",
