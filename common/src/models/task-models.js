@@ -46,7 +46,8 @@ export const AssignTaskSchema = z.object({
   userId: z
     .number({ error: 'userId must be a number' })
     .int()
-    .positive({ message: 'userId must be a positive integer' }),
+    .positive({ message: 'userId must be a positive integer' })
+    .nullable(),
 });
 
 export const TaskSchema = z.object({

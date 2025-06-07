@@ -176,4 +176,51 @@ router.get('/:teamId/users', authenticated, async (req, res) => {
   res.json(members);
 });
 
+/**
+ * Get specific team details
+ * @param {import('../index.js').AuthenticatedRequest} req 
+ * @param {import('express').Response} res 
+ */
+router.get('/:teamId', authenticated, async (req, res) => {
+  const teamId = Number(req.params.teamId);
+  // @ts-ignore - jwtContents is added by authenticated middleware
+  const currentUserId = req.jwtContents.user.userId;
+  
+  if (isNaN(teamId)) {
+    throw new AppError({
+      code: 'validation_error',
+      status: 400,
+      message: 'Validation Error',
+      data: {
+          errors: ['Invalid team ID']
+      },
+    });
+  }
+
+  const team = await getTeamById(teamId);
+  if (!team) {
+    throw new AppError({
+      code: 'not_found',
+      status: 404,
+      message: 'Team not found',
+      data: undefined,
+    });
+  }
+
+  // Check if current user is team member or owner
+  const userTeams = await getTeamsForUser(currentUserId);
+  const isMember = userTeams.some(t => t.team_id === teamId) || team.team_owner_id === currentUserId;
+  
+  if (!isMember) {
+    throw new AppError({
+      code: 'missing_role',
+      status: 403,
+      message: 'Not authorized to view this team',
+      data: undefined,
+    });
+  }
+
+  res.json(team);
+});
+
 export default router;

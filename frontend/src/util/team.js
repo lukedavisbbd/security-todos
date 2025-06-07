@@ -57,3 +57,12 @@ export const addUserToTeam = async (teamId, userId) => {
 export const removeUserFromTeam = async (teamId, userId) => {
     return await apiFetch(`/teams/${teamId}/users/${userId}`, 'DELETE');
 };
+
+/**
+ * Get specific team details
+ * @param {number} teamId
+ * @returns {Promise<import("./http").ApiResult<import('common').Team> | null>}
+ */
+export const getTeamById = async (teamId) => {
+    return await apiFetch(`/teams/${teamId}`);
+};

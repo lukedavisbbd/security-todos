@@ -23,6 +23,10 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
             body: JSON.stringify(body),
         });
 
+        if (resp.status === 204) {
+            return { ok: true, status: 204 };
+        }
+
         /**
          * @type {ApiResult<T>}
          */
@@ -35,9 +39,11 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
         if ('err' in result && result.err.code === 'not_logged_in') {
             userJwtContents.set(null);
         }
-
+        console.log("return a result");
         return result;
-    } catch {
+    } catch (err) {
+        console.log(err);
+        console.log("return nothing");
         return null;
     }
 };

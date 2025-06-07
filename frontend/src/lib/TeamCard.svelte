@@ -80,7 +80,7 @@
     </section>
     
     <footer class="team-actions">
-        <a class="btn btn-outline" href="/teams/{team.team_id}" use:route>
+        <a class="btn btn-outline" href="/team/{team.team_id}" use:route>
             View Team
             <ArrowRight/>
         </a>
