@@ -2,7 +2,7 @@ import { userJwtContents } from "./stores";
 
 /**
  * @template T
- * @typedef {{ ok: T } | { err: import("common").ErrorResponse }} ApiResult
+ * @typedef {{ ok: T } | { ok: true, status: 204} | { err: import("common").ErrorResponse }} ApiResult
  */
 
 /**

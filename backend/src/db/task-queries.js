@@ -96,7 +96,7 @@ export async function updateTaskDetails(taskId, name, content) {
 /**
  * Assign a task to a specific user.
  * @param {number} taskId
- * @param {number} userId
+ * @param {number | null} userId
  * @returns {Promise<void>}
  */
 export async function assignTaskToUser(taskId, userId) {
