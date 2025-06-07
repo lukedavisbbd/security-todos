@@ -2,8 +2,8 @@ import {
     AppError, 
     CreateTaskSchema,
     UpdateTaskDetailsSchema,
-    UpdateStatusSchema,
-    AssignTaskSchema 
+    AssignTaskSchema,
+    StatusIdSchema 
 } from 'common';
 import { Router } from 'express';
 import {
@@ -132,7 +132,7 @@ router.put('/:id/status', authenticated, async (req, res, next) => {
                 },
             });
         }
-        const { statusId } = UpdateStatusSchema.parse(req.body);
+        const statusId = StatusIdSchema.parse(req.body);
         await updateTaskStatus(taskId, statusId);
         res.json({ message: 'Status updated' });
     } catch (

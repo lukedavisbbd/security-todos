@@ -1,5 +1,5 @@
 import { AppError } from 'common';
-import { z } from 'zod/v4';
+import { z } from 'common';
 
 /**
  * @param {unknown} err 
@@ -12,7 +12,12 @@ export const errorHandler = (err, _req, res, _next) => {
     if (err instanceof AppError) {
         appError = err;
     } else if (err instanceof z.ZodError) {
-        appError = new AppError(err);
+        appError = new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'Validation failed for one or more fields.',
+            data: { errors: err.issues.map(issue => issue.message) },
+        });
     } else if (err instanceof SyntaxError) {
         // failed to parse request body as json
         appError = new AppError({
