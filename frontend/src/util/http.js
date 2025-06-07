@@ -11,6 +11,7 @@ import { userJwtContents } from "./stores";
  * @param {string} path
  * @param {string} method
  * @param {B | undefined} body
+ * @returns {Promise<ApiResult<T> | null>}
  */
 export const apiFetch = async (path, method = 'GET', body = undefined) => {
     try {
@@ -23,11 +24,15 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
             body: JSON.stringify(body),
         });
 
+        if (resp.status === 204) {
+            return /** @type {ApiResult<T>} */({ ok: /** @type {T} */({}) });
+        }
+
         /**
          * @type {ApiResult<T>}
          */
         const result = resp.ok ? {
-            ok: await resp.json(),
+            ok: /** @type {T} */(await resp.json()),
         } : {
             err: await resp.json()
         };
@@ -35,9 +40,10 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
         if ('err' in result && result.err.code === 'not_logged_in') {
             userJwtContents.set(null);
         }
-
+        
         return result;
-    } catch {
+    } catch (err) {
+        console.log(err);
         return null;
     }
 };

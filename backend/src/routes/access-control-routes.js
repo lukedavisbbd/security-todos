@@ -7,11 +7,6 @@ import { AppError } from 'common';
 
 const router = Router().use(requireRole('access_admin'));
 
-router.get('/users', async (req, res) => {
-    const query = UserSearchQuerySchema.parse(req.query);
-    const users = await searchUsers(query.search?.trim());
-    res.json(users);
-});
 
 router.get('/roles', async (req, res) => {
     const roles = await fetchRoles();
