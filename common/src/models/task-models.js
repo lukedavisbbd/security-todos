@@ -35,13 +35,6 @@ export const UpdateTaskDetailsSchema = z.object({
     .optional(),
 });
 
-export const UpdateStatusSchema = z.object({
-  statusId: z
-    .number({ error: 'statusId must be a number' })
-    .int()
-    .positive({ message: 'statusId must be a positive integer' }),
-});
-
 export const AssignTaskSchema = z.object({
   userId: z
     .number({ error: 'userId must be a number' })

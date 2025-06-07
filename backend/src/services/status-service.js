@@ -2,16 +2,9 @@ import {
   StatusSchema,
   CreateStatusSchema,
   StatusIdSchema,
-} from "../../../common/src/schemas/status.js";
+} from "common";;
 import { statusModel } from "../models/status-model.js";
 import { z } from "common";
-
-/**
- * @typedef {import("../../../common/src/schemas/status").Status} Status
- * @typedef {import("../../../common/src/schemas/status").CreateStatusInput} CreateStatusInput
- * @typedef {import("../../../common/src/schemas/status").UpdateStatusInput} UpdateStatusInput
- * @typedef {import("../../../common/src/schemas/status").StatusId} StatusId
- */
 
 export class StatusService {
   /**
@@ -23,8 +16,8 @@ export class StatusService {
 
   /**
    * Creates a new status.
-   * @param {CreateStatusInput} statusData - The data for the new status.
-   * @returns {Promise<Status>} The created status.
+   * @param {CreateStatusSchema} statusData - The data for the new status.
+   * @returns {Promise<z.infer<typeof StatusSchema>>} The created status.
    * @throws {z.ZodError|Error} If statusData is invalid or output is invalid.
    */
   async createStatus(statusData) {
@@ -42,7 +35,7 @@ export class StatusService {
   /**
    * Retrieves a status by its ID.
    * @param {number} id - The ID of the status.
-   * @returns {Promise<Status | null>} The status if found, otherwise null.
+   * @returns {Promise<z.infer<typeof StatusSchema> | null>} The status if found, otherwise null.
    * @throws {z.ZodError|Error} If id is invalid or output is invalid.
    */
   async getStatusById(id) {
@@ -64,7 +57,7 @@ export class StatusService {
 
   /**
    * Retrieves all statuses.
-   * @returns {Promise<Status[]>} An array of all statuses.
+   * @returns {Promise<z.infer<typeof StatusSchema>[]>} An array of all statuses.
    * @throws {Error} If output is invalid.
    */
   async getAllStatuses() {
