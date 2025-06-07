@@ -3,7 +3,6 @@
     import { ArrowLeft, Clock, User, CheckSquare } from "@lucide/svelte";
     import { requireAuth } from "../util/auth-guard";
     import { getTaskHistory, getTaskById } from "../util/tasks";
-    import { route } from "@mateothegreat/svelte5-router";
     import Spinner from "../lib/Spinner.svelte";
 
     let { route: routeInfo } = $props();

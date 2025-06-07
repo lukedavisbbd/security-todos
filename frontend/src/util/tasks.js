@@ -10,12 +10,38 @@ export const getTasksForUser = async (userId) => {
 };
 
 /**
- * Get tasks for a team
+ * Get tasks for a team with optional filtering and pagination
  * @param {number} teamId
- * @returns {Promise<import("./http").ApiResult<import('common').TaskWithAssignee[]> | null>}
+ * @param {Object} [options] - Filtering and pagination options
+ * @param {number|null} [options.userId] - Filter by assigned user (null for unassigned)
+ * @param {number} [options.statusId] - Filter by status
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Items per page
+ * @returns {Promise<import("./http").ApiResult<{tasks: import('common').TaskWithAssignee[], pagination: {currentPage: number, totalPages: number, totalItems: number, itemsPerPage: number}}> | null>}
  */
-export const getTasksForTeam = async (teamId) => {
-    return await apiFetch(`/tasks/team/${teamId}`);
+export const getTasksForTeam = async (teamId, options = {}) => {
+    const searchParams = new URLSearchParams();
+    
+    if (options.userId !== undefined) {
+        searchParams.append('userId', options.userId === null ? 'null' : options.userId.toString());
+    }
+    
+    if (options.statusId !== undefined) {
+        searchParams.append('statusId', options.statusId.toString());
+    }
+    
+    if (options.page !== undefined) {
+        searchParams.append('page', options.page.toString());
+    }
+    
+    if (options.limit !== undefined) {
+        searchParams.append('limit', options.limit.toString());
+    }
+    
+    const queryString = searchParams.toString();
+    const url = `/tasks/team/${teamId}${queryString ? `?${queryString}` : ''}`;
+    
+    return await apiFetch(url);
 };
 
 /**
@@ -75,8 +101,6 @@ export const assignTaskToUser = async (taskId, userId) => {
 export const deleteTask = async (taskId) => {
     return await apiFetch(`/tasks/${taskId}`, 'DELETE');
 };
-
-// Add this to frontend/src/util/tasks.js
 
 /**
  * Get task history

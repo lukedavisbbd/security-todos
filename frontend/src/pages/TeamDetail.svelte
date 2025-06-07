@@ -24,8 +24,21 @@
     let members = $state([]);
     let statuses = $state([]);
     let loading = $state(true);
+    let tasksLoading = $state(false);
     let error = $state('');
     let activeTab = $state('tasks');
+
+    let pagination = $state({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: 5
+    });
+
+    let filters = $state({
+        userId: undefined,
+        statusId: undefined
+    });
 
     let showCreateTask = $state(false);
     let showEditTask = $state(false);
@@ -34,7 +47,7 @@
 
     const isTeamOwner = $derived(team && $userJwtContents && team.team_owner_id === $userJwtContents.user.userId);
 
-    const loadTeamData = async () => {
+    const loadTeamBasicData = async () => {
         loading = true;
         error = '';
         
@@ -45,13 +58,6 @@
                 return;
             }
             team = teamResult.ok;
-
-            const tasksResult = await getTasksForTeam(teamId);
-            if (!tasksResult || 'err' in tasksResult) {
-                error = 'Failed to load tasks';
-                return;
-            }
-            tasks = tasksResult.ok;
 
             const membersResult = await getTeamMembers(teamId);
             if (!membersResult || 'err' in membersResult) {
@@ -75,25 +81,75 @@
         }
     };
 
-    const handleTaskCreated = (newTask) => {
-        loadTeamData();
+    const loadTasks = async () => {
+        if (!team || tasksLoading) return;
+        tasksLoading = true;
+        
+        try {
+            const tasksResult = await getTasksForTeam(teamId, {
+                userId: filters.userId,
+                statusId: filters.statusId,
+                page: pagination.currentPage,
+                limit: pagination.itemsPerPage
+            });
+            
+            if (!tasksResult || 'err' in tasksResult) {
+                error = 'Failed to load tasks';
+                tasks = [];
+                pagination = {
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalItems: 0,
+                    itemsPerPage: 5
+                };
+                return;
+            }
+            
+            tasks = tasksResult.ok.tasks;
+            pagination = tasksResult.ok.pagination;
+
+        } catch (err) {
+            error = 'Failed to load tasks';
+            console.error(err);
+        } finally {
+            tasksLoading = false;
+        }
+    };
+
+    const handleTaskCreated = () => {
+        loadTasks();
     };
 
     const handleTaskUpdated = () => {
-        loadTeamData();
         showEditTask = false;
         editingTask = null;
+        loadTasks();
     };
 
     const handleMemberAdded = () => {
-        loadTeamData();
         showAddMember = false;
+        loadTeamBasicData();
     };
 
     const handleMemberRemoved = () => {
-        loadTeamData();
+        loadTeamBasicData();
     };
 
+    const handleFiltersChange = (newFilters) => {
+        filters = { ...newFilters };
+        pagination = { ...pagination, currentPage: 1 };
+        loadTasks();
+    };
+
+    const handlePageChange = (page) => {
+        pagination = { ...pagination, currentPage: page };
+        loadTasks();
+    };
+
+    const handleLimitChange = (limit) => {
+        pagination = { ...pagination, itemsPerPage: limit, currentPage: 1 };
+        loadTasks();
+    };
     const openEditTask = (task) => {
         editingTask = task;
         showEditTask = true;
@@ -107,13 +163,23 @@
         }
 
         if (authState.isAuthorized) {
-            loadTeamData();
+            loadTeamBasicData().then(()=>{
+                loadTasks();
+            });
+            
         }
     });
 
+    const handleTabChange = (newTab) => {
+        activeTab = newTab;
+        if (newTab === 'tasks' && team && !tasksLoading) {
+            loadTasks();
+        }
+    };
+
     $effect(() => {
         if (authState.isAuthorized && !team && !loading && !error) {
-            loadTeamData();
+            loadTeamBasicData();
         }
     });
 </script>
@@ -198,7 +264,7 @@
             {:else if error}
                 <div class="error-state">
                     <p>{error}</p>
-                    <button class="btn btn-outline" onclick={loadTeamData}>
+                    <button class="btn btn-outline" onclick={loadTeamBasicData}>
                         Try Again
                     </button>
                 </div>
@@ -216,7 +282,7 @@
                     <button 
                         class="tab" 
                         class:active={activeTab === 'tasks'}
-                        onclick={() => activeTab = 'tasks'}
+                        onclick={() => handleTabChange('tasks')}
                     >
                         Tasks
                     </button>
@@ -235,9 +301,14 @@
                         {statuses}
                         {members}
                         {isTeamOwner}
+                        {pagination}
+                        {filters}
+                        loading={tasksLoading}
                         onCreateTask={() => showCreateTask = true}
                         onEditTask={openEditTask}
-                        onTaskUpdated={loadTeamData}
+                        onFiltersChange={handleFiltersChange}
+                        onPageChange={handlePageChange}
+                        onLimitChange={handleLimitChange}
                     />
                 {:else if activeTab === 'members'}
                     <MembersTab 

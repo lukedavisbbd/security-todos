@@ -18,21 +18,80 @@ export async function getTasksForUser(userId) {
 }
 
 /**
- * Get all tasks for a specific team.
+ * Get all tasks for a specific team with filtering and pagination.
  * @param {number} teamId
- * @returns {Promise<import('common').TaskWithAssignee[]>}
+ * @param {Object} options - Filtering and pagination options
+ * @param {number|null} [options.userId] - Filter by assigned user (null for unassigned)
+ * @param {number} [options.statusId] - Filter by status
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Items per page
+ * @returns {Promise<{tasks: import('common').TaskWithAssignee[], pagination: {currentPage: number, totalPages: number, totalItems: number, itemsPerPage: number}}>}
  */
-export async function getTasksForTeam(teamId) {
-    const result = await pool.query(
-        `SELECT t.task_id, t.task_name, t.task_content, t.status_id, s.status_name, u.email AS assigned_to_email
-         FROM tasks t
-         JOIN statuses s ON t.status_id = s.status_id
-         LEFT JOIN users u ON t.assigned_to_id = u.user_id
-         WHERE t.team_id = $1
-         ORDER BY t.task_id`,
-        [teamId]
-    );
-    return result.rows;
+export async function getTasksForTeam(teamId, options = {}) {
+    const {
+        userId,
+        statusId,
+        page = 1,
+        limit = 10
+    } = options;
+
+    const conditions = ['t.team_id = $1'];
+    const params = [teamId];
+    let paramIndex = 2;
+
+    if (userId !== undefined) {
+        if (userId === null) {
+            conditions.push('t.assigned_to_id IS NULL');
+        } else {
+            conditions.push(`t.assigned_to_id = $${paramIndex}`);
+            params.push(userId);
+            paramIndex++;
+        }
+    }
+
+    if (statusId !== undefined) {
+        conditions.push(`t.status_id = $${paramIndex}`);
+        params.push(statusId);
+        paramIndex++;
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    const countQuery = `
+        SELECT COUNT(*) as total
+        FROM tasks t
+        JOIN statuses s ON t.status_id = s.status_id
+        LEFT JOIN users u ON t.assigned_to_id = u.user_id
+        WHERE ${whereClause}
+    `;
+    
+    const countResult = await pool.query(countQuery, params);
+    const totalItems = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(totalItems / limit);
+    const offset = (page - 1) * limit;
+
+    const tasksQuery = `
+        SELECT t.task_id, t.task_name, t.task_content, t.status_id, s.status_name, u.email AS assigned_to_email
+        FROM tasks t
+        JOIN statuses s ON t.status_id = s.status_id
+        LEFT JOIN users u ON t.assigned_to_id = u.user_id
+        WHERE ${whereClause}
+        ORDER BY t.task_id
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    params.push(limit, offset);
+    const tasksResult = await pool.query(tasksQuery, params);
+
+    return {
+        tasks: tasksResult.rows,
+        pagination: {
+            currentPage: page,
+            totalPages,
+            totalItems,
+            itemsPerPage: limit
+        }
+    };
 }
 
 /**

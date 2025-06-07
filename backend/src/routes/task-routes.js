@@ -59,9 +59,7 @@ router.get('/user/:userId', authenticated, async (req, res) => {
         });
     }
 
-    // Users can only view their own tasks, or team owners can view their team members' tasks
     if (currentUserId !== targetUserId) {
-        // Check if current user is team owner of any teams the target user is in
         const currentUserTeams = await getTeamsForUser(currentUserId);
         const targetUserTeams = await getTeamsForUser(targetUserId);
         
@@ -87,7 +85,7 @@ router.get('/user/:userId', authenticated, async (req, res) => {
 });
 
 /**
- * Get tasks for a team
+ * Get tasks for a team with filtering and pagination
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
@@ -107,7 +105,6 @@ router.get('/team/:teamId', authenticated, async (req, res) => {
         });
     }
 
-    // Check if user has access to this team
     const hasAccess = await hasTeamAccess(teamId, currentUserId);
     if (!hasAccess) {
         throw new AppError({
@@ -118,8 +115,43 @@ router.get('/team/:teamId', authenticated, async (req, res) => {
         });
     }
 
-    const tasks = await getTasksForTeam(teamId);
-    res.json(tasks);
+    const userId = req.query.userId ? 
+        (req.query.userId === 'null' ? null : Number(req.query.userId)) : 
+        undefined;
+    const statusId = req.query.statusId ? Number(req.query.statusId) : undefined;
+    const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
+    const limit = req.query.limit ? Math.min(100, Math.max(1, Number(req.query.limit))) : 10;
+
+    if (req.query.userId && req.query.userId !== 'null' && (isNaN(userId) || userId < 1)) {
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'Invalid user ID parameter',
+            data: {
+                errors: ['User ID must be a positive number or null']
+            },
+        });
+    }
+
+    if (req.query.statusId && (isNaN(statusId) || statusId < 1)) {
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'Invalid status ID parameter',
+            data: {
+                errors: ['Status ID must be a positive number']
+            },
+        });
+    }
+
+    const result = await getTasksForTeam(teamId, {
+        userId,
+        statusId,
+        page,
+        limit
+    });
+
+    res.json(result);
 });
 
 /**
@@ -153,7 +185,6 @@ router.get('/:id', authenticated, async (req, res) => {
         });
     }
 
-    // Check if user has access to this task's team
     const hasAccess = await hasTeamAccess(task.team_id, currentUserId);
     if (!hasAccess) {
         throw new AppError({
@@ -177,7 +208,6 @@ router.post('/', authenticated, async (req, res) => {
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
 
-    // Check if current user is team owner
     const isTeamMember = await hasTeamAccess(data.teamId, currentUserId);
     if (!isTeamMember) {
         throw new AppError({
@@ -229,7 +259,6 @@ router.put('/:id/status', authenticated, async (req, res) => {
         });
     }
 
-    // Check if user has access to this task's team
     const hasAccess = await hasTeamAccess(task.team_id, currentUserId);
     if (!hasAccess) {
         throw new AppError({
@@ -276,7 +305,6 @@ router.put('/:id', authenticated, async (req, res) => {
         });
     }
 
-    // Check if user has access to this task's team
     const hasAccess = await hasTeamAccess(task.team_id, currentUserId);
     if (!hasAccess) {
         throw new AppError({
@@ -323,7 +351,6 @@ router.put('/:id/assign', authenticated, async (req, res) => {
         });
     }
 
-    // Check if user has access to this task's team
     const hasAccess = await hasTeamAccess(task.team_id, currentUserId);
     if (!hasAccess) {
         throw new AppError({
@@ -370,7 +397,6 @@ router.delete('/:id', authenticated, async (req, res) => {
         });
     }
 
-    // Check if current user is team owner
     const isOwner = await isTeamOwner(task.team_id, currentUserId);
     if (!isOwner) {
         throw new AppError({
