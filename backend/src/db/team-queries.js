@@ -89,12 +89,33 @@ export async function addUserToTeam(userId, teamId) {
  * @returns {Promise<void>}
  */
 export async function removeUserFromTeam(userId, teamId) {
-    await pool.query(
-        `DELETE FROM user_teams
-         WHERE user_id = $1
-           AND team_id = $2`,
-        [userId, teamId]
-    );
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        await client.query(
+            `UPDATE tasks 
+             SET assigned_to_id = NULL 
+             WHERE assigned_to_id = $1 
+               AND team_id = $2`,
+            [userId, teamId]
+        );
+        
+        await client.query(
+            `DELETE FROM user_teams
+             WHERE user_id = $1
+               AND team_id = $2`,
+            [userId, teamId]
+        );
+        
+        await client.query('COMMIT');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
 }
 
 /**
