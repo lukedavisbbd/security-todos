@@ -100,17 +100,23 @@
 </script>
 
 <style>
-    .loader-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 0 auto;
-        width: 100%;
-        max-width: 12rem;
-        aspect-ratio: 1;
-        font-size: 4rem;
-    }
+    dialog {
+        position: absolute;
+        border: none;
 
+        background-color: #fafafa;
+        box-shadow: 0 0.5rem 0.5rem #0001;
+        position: absolute;
+        z-index: 30;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        border-radius: 1rem;
+        gap: 1.5rem;
+
+        width: 100%;
+        max-width: 28rem;
+    }
     .search-results {
         max-height: 20rem;
         overflow-y: auto;

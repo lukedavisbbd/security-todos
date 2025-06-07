@@ -72,6 +72,15 @@
         border-bottom: 1px solid #0003;
     }
 
+    .members-table th:first-child {
+        width: 100%;
+    }
+
+    .members-table th:last-child {
+        width: 120px;
+        text-align: center;
+    }
+
     .members-table td {
         padding: 1rem;
         border-bottom: 1px solid #0001;
@@ -96,22 +105,27 @@
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        min-width: 0;
+        flex: 1;
     }
 
     .member-name {
         font-weight: 500;
         color: #333;
+        word-wrap: break-word;
     }
 
     .member-email {
         color: #666;
         font-size: 0.875rem;
+        word-wrap: break-word;
     }
 
     .actions {
         display: flex;
         gap: 0.5rem;
-        justify-content: flex-end;
+        justify-content: center;
+        min-width: 80px;
     }
 
     .empty-state {
@@ -138,6 +152,14 @@
         .member-info {
             gap: 0.5rem;
         }
+
+        .actions {
+            min-width: 60px;
+        }
+
+        .members-table th:last-child {
+            width: 80px;
+        }
     }
 </style>
 
@@ -156,12 +178,6 @@
         <div class="empty-state">
             <h3>No members yet</h3>
             <p>Add members to your team to start collaborating.</p>
-            {#if isTeamOwner}
-                <button class="btn btn-primary" onclick={onAddMember}>
-                    <Plus/>
-                    Add First Member
-                </button>
-            {/if}
         </div>
     {:else}
         <table class="members-table">

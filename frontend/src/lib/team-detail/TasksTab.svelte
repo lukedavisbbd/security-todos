@@ -1,5 +1,5 @@
 <script>
-    import { Plus, Edit } from "@lucide/svelte";
+    import { Plus, Edit, History } from "@lucide/svelte";
     import { updateTaskStatus, assignTaskToUser } from "../../util/tasks";
 
     /** @type {{ 
@@ -81,6 +81,15 @@
             alert('Failed to update task assignment');
         }
     };
+
+    /**
+     * Handle view history (placeholder)
+     * @param {import('common').TaskWithAssignee} task
+     */
+    const handleViewHistory = (task) => {
+        // Placeholder for future implementation
+        alert(`History for task: ${task.task_name}\n\nThis feature will show the task's status and assignment history.`);
+    };
 </script>
 
 <style>
@@ -98,67 +107,126 @@
         margin: 0;
     }
 
-    .tasks-table {
-        width: 100%;
-        border-collapse: collapse;
+    .tasks-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .task-card {
+        background-color: #fafafa;
         border: 1px solid #0003;
         border-radius: 0.5rem;
-        overflow: hidden;
-        background-color: #fafafa;
+        padding: 1.25rem;
+        transition: all 150ms;
     }
 
-    .tasks-table th {
-        background-color: #f0f0f0;
-        padding: 1rem;
-        text-align: left;
-        font-weight: 500;
-        border-bottom: 1px solid #0003;
+    .task-card:hover {
+        box-shadow: 0 0.25rem 0.5rem #0001;
+        border-color: #0005;
     }
 
-    .tasks-table td {
-        padding: 1rem;
-        border-bottom: 1px solid #0001;
-        vertical-align: top;
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
     }
 
-    .tasks-table tr:last-child td {
-        border-bottom: none;
+    .task-title-section {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
     }
 
-    .tasks-table tr:hover {
-        background-color: #f8f8f8;
+    .title-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
     }
-
     .task-name {
         font-weight: 500;
-        margin-bottom: 0.25rem;
+        font-size: 1.125rem;
+        color: #333;
+        word-wrap: break-word;
+        margin: 0;
+    }
+
+    .description-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .description-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .task-meta {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .meta-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 120px;
+    }
+
+    .meta-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
     .task-content {
         color: #666;
-        font-size: 0.875rem;
-        line-height: 1.4;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 0;
+    }
+
+    .task-actions {
+        flex-shrink: 0;
+        display: flex;
+        gap: 0.75rem;
     }
 
     .inline-select {
-        border: 1px solid transparent;
-        background: transparent;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
+        border: 1px solid #0003;
+        background: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
         font-size: 0.875rem;
         cursor: pointer;
         transition: all 150ms;
+        min-width: 120px;
     }
 
     .inline-select:hover {
-        border-color: #0003;
-        background-color: white;
+        border-color: #0005;
+        box-shadow: 0 0.125rem 0.25rem #0001;
     }
 
     .inline-select:focus {
         border-color: #007acc;
-        background-color: white;
         outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
     }
 
     .status-select {
@@ -166,10 +234,19 @@
         font-weight: 500;
         letter-spacing: 0.05em;
         font-size: 0.75rem;
+        background-color: #f0f4f8;
+        border-color: #007acc;
+        color: #007acc;
+        min-width: 100px;
     }
 
     .status-select option {
         text-transform: uppercase;
+    }
+
+    .assignment-select {
+        color: #666;
+        background-color: #f8f9fa;
     }
 
     .empty-state {
@@ -184,13 +261,35 @@
     }
 
     @media (max-width: 768px) {
-        .tasks-table {
-            font-size: 0.875rem;
+        .task-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
         }
-        
-        .tasks-table th,
-        .tasks-table td {
-            padding: 0.75rem 0.5rem;
+
+        .task-meta {
+            gap: 1rem;
+        }
+
+        .meta-field {
+            min-width: 100px;
+        }
+
+        .task-actions {
+            align-self: flex-end;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+        }
+
+        .task-actions button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .inline-select {
+            min-width: 100px;
+            font-size: 0.8rem;
         }
     }
 </style>
@@ -208,65 +307,77 @@
         <div class="empty-state">
             <h3>No tasks yet</h3>
             <p>Create your first task to get started.</p>
-            <button class="btn btn-primary" onclick={onCreateTask}>
-                <Plus/>
-                Create First Task
-            </button>
         </div>
     {:else}
-        <table class="tasks-table">
-            <thead>
-                <tr>
-                    <th>Task</th>
-                    <th>Assigned To</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each tasks as task (task.task_id)}
-                    <tr>
-                        <td>
-                            <div class="task-name">{task.task_name}</div>
-                            {#if task.task_content}
-                                <div class="task-content">{task.task_content}</div>
-                            {/if}
-                        </td>
-                        <td>
-                            <select 
-                                class="inline-select"
-                                value={getMemberIdByEmail(task.assigned_to_email) || 'null'}
-                                onchange={(e) => handleAssignmentChange(task, e)}
-                            >
-                                <option value="null">Unassigned</option>
-                                {#each members as member (member.user_id)}
-                                    <option value={member.user_id}>{member.name}</option>
-                                {/each}
-                            </select>
-                        </td>
-                        <td>
-                            <select 
-                                class="inline-select status-select"
-                                value={task.status_id}
-                                onchange={(e) => handleStatusChange(task, e)}
-                            >
-                                {#each statuses as status (status.status_id)}
-                                    <option value={status.status_id}>{status.status_name}</option>
-                                {/each}
-                            </select>
-                        </td>
-                        <td>
+        <div class="tasks-grid">
+            {#each tasks as task (task.task_id)}
+                <div class="task-card">
+                    <div class="task-header">
+                        <div class="task-title-section">
+                            <div class="title-field">
+                                <div class="task-name">{task.task_name}</div>
+                            </div>
+                            
+                            <div class="task-meta">
+                                <div class="meta-field">
+                                    <label class="meta-label" for="assigned-{task.task_id}">Assigned to:</label>
+                                    <select 
+                                        id="assigned-{task.task_id}"
+                                        class="inline-select assignment-select"
+                                        value={getMemberIdByEmail(task.assigned_to_email) || 'null'}
+                                        onchange={(e) => handleAssignmentChange(task, e)}
+                                    >
+                                        <option value="null">Unassigned</option>
+                                        {#each members as member (member.user_id)}
+                                            <option value={member.user_id}>{member.name}</option>
+                                        {/each}
+                                    </select>
+                                </div>
+                                
+                                <div class="meta-field">
+                                    <label class="meta-label" for="status-{task.task_id}">Status:</label>
+                                    <select 
+                                        id="status-{task.task_id}"
+                                        class="inline-select status-select"
+                                        value={task.status_id}
+                                        onchange={(e) => handleStatusChange(task, e)}
+                                    >
+                                        {#each statuses as status (status.status_id)}
+                                            <option value={status.status_id}>{status.status_name}</option>
+                                        {/each}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="task-actions">
                             <button 
-                                class="btn btn-small btn-outline" 
+                                class="btn btn-outline" 
+                                onclick={() => handleViewHistory(task)}
+                                title="View Task History"
+                            >
+                                <History/>
+                                History
+                            </button>
+                            <button 
+                                class="btn btn-outline" 
                                 onclick={() => onEditTask(task)}
                                 title="Edit Task Details"
                             >
                                 <Edit/>
+                                Edit
                             </button>
-                        </td>
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
+                        </div>
+                    </div>
+                    
+                    {#if task.task_content}
+                        <div class="description-field">
+                            <label class="description-label">Description:</label>
+                            <div class="task-content">{task.task_content}</div>
+                        </div>
+                    {/if}
+                </div>
+            {/each}
+        </div>
     {/if}
 </section>

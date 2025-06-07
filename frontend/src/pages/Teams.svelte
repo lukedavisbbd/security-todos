@@ -17,6 +17,7 @@
     let showCreateTeam = $state(false);
 
     const loadTeams = async () => {
+        console.log("test");
         loading = true;
         error = '';
         
@@ -49,13 +50,7 @@
             loadTeams();
         }
     });
-
-    // Load teams when authorization is confirmed
-    $effect(() => {
-        if (authState.isAuthorized && teams.length === 0 && !loading) {
-            loadTeams();
-        }
-    });
+    
 </script>
 
 <style>
@@ -137,10 +132,6 @@
                 <div class="empty-state">
                     <h3>No teams yet</h3>
                     <p>Create your first team to get started with collaborative task management.</p>
-                    <button class="btn btn-primary" onclick={() => showCreateTeam = true}>
-                        <Plus/>
-                        Create Your First Team
-                    </button>
                 </div>
             {:else}
                 <section class="teams-grid">
