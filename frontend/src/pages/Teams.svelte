@@ -17,7 +17,6 @@
     let showCreateTeam = $state(false);
 
     const loadTeams = async () => {
-        console.log("test");
         loading = true;
         error = '';
         

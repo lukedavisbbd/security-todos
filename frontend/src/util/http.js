@@ -39,11 +39,9 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
         if ('err' in result && result.err.code === 'not_logged_in') {
             userJwtContents.set(null);
         }
-        console.log("return a result");
         return result;
     } catch (err) {
         console.log(err);
-        console.log("return nothing");
         return null;
     }
 };

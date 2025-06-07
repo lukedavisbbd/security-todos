@@ -310,7 +310,7 @@
 
                 {#if history.length <= 1}
                     <div class="single-record">
-                        <h3>Simple History</h3>
+                        <h3>Task has never changed state</h3>
                         {#if history.length === 1}
                             <p>
                                 This task has only been in <strong>{history[0].status_name}</strong> status

@@ -28,7 +28,6 @@
         addError = '';
         
         const result = await addUserToTeam(teamId, user.user.userId);
-        console.log(result);
         if (!result) {
             addError = 'Failed to add member to team.';
         } else if ('ok' in result) {
@@ -84,7 +83,6 @@
             
             usersLoading = true;
             searchError = '';
-            console.log("about to search")
             const result = await searchUsers(search.trim());
             if (result && 'ok' in result) {
                 users = result.ok;

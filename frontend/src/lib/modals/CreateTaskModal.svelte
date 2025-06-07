@@ -19,9 +19,7 @@
     };
 
     const performCreateTask = async () => {
-        console.log("starting");
         createErrors = null;
-        console.log("starting");
         const request = CreateTaskSchema.safeParse({
             teamId,
             assignedToId: assignedToId || undefined,
@@ -29,13 +27,10 @@
             name: taskName,
             content: taskContent || undefined,
         });
-        console.log(request);
-        console.log("starting");
         if (request.error) {
             createErrors = z.treeifyError(request.error);
             return;
         }
-        console.log("creating a task")
         const result = await createTask(request.data);
 
         if (!result) {
@@ -129,7 +124,6 @@
             <form onsubmit={e => {
                 
                 e.preventDefault();
-                console.log("submitting")
                 createPromise = performCreateTask().then(() => {
                     createPromise = null;
                 });
@@ -183,7 +177,7 @@
                     </div>
                 </article>
                 <footer>
-                    <button onclick={()=>{console.log("test");}} class="btn btn-outline btn-dark btn-center w-full">
+                    <button class="btn btn-outline btn-dark btn-center w-full">
                         Create Task
                     </button>
                 </footer>
