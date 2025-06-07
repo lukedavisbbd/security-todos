@@ -144,7 +144,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true">
     <dialog open onclick={e => e.stopPropagation()}>
         {#if registrationPromise}
             {#await registrationPromise}
