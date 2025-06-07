@@ -64,7 +64,6 @@
         error = '';
         
         try {
-            // Load task info
             const taskResult = await getTaskById(taskId);
             if (!taskResult || 'err' in taskResult) {
                 error = taskResult?.err?.message || 'Failed to load task';
@@ -72,7 +71,6 @@
             }
             task = taskResult.ok;
 
-            // Load task history
             const historyResult = await getTaskHistory(taskId);
             if (!historyResult || 'err' in historyResult) {
                 error = historyResult?.err?.message || 'Failed to load task history';

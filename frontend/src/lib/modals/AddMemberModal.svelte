@@ -74,7 +74,7 @@
     let addingMember = $state(null);
 
     $effect(() => {
-        search.value;
+        search.valueOf;
         const delayedSearch = setTimeout(async () => {
             if (search.trim().length < 2) {
                 users = [];

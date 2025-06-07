@@ -2,7 +2,7 @@ import { userJwtContents } from "./stores";
 
 /**
  * @template T
- * @typedef {{ ok: T } | { ok: true, status: 204} | { err: import("common").ErrorResponse }} ApiResult
+ * @typedef {{ ok: T } | { err: import("common").ErrorResponse }} ApiResult
  */
 
 /**
@@ -11,6 +11,7 @@ import { userJwtContents } from "./stores";
  * @param {string} path
  * @param {string} method
  * @param {B | undefined} body
+ * @returns {Promise<ApiResult<T> | null>}
  */
 export const apiFetch = async (path, method = 'GET', body = undefined) => {
     try {
@@ -24,14 +25,14 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
         });
 
         if (resp.status === 204) {
-            return { ok: true, status: 204 };
+            return /** @type {ApiResult<T>} */({ ok: /** @type {T} */({}) });
         }
 
         /**
          * @type {ApiResult<T>}
          */
         const result = resp.ok ? {
-            ok: await resp.json(),
+            ok: /** @type {T} */(await resp.json()),
         } : {
             err: await resp.json()
         };
@@ -39,6 +40,7 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
         if ('err' in result && result.err.code === 'not_logged_in') {
             userJwtContents.set(null);
         }
+        
         return result;
     } catch (err) {
         console.log(err);
