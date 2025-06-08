@@ -6,7 +6,7 @@
     import { clickOutside } from "../util/click-outside";
     import { addRole, deleteRole } from "../util/access-control";
 
-    /** @type {{ user: import('common').UserWithRoles, allRoles: Promise<import('../util/http').ApiResult<string[]> | null>, onChangeRoles: (newRoles: string[]) => void }} */
+    /** @type {{ user: import('common').UserWithRoles, allRoles: string[], onChangeRoles: (newRoles: string[]) => void }} */
     let { user, allRoles, onChangeRoles } = $props();
 
     let showAddMenu = $state(false);
@@ -84,10 +84,6 @@
             box-shadow: 0 0.1rem 0.2rem #0001;
             margin: 0;
             padding: 0.5rem;
-
-            .error {
-                text-wrap-mode: nowrap;
-            }
         }
     }
 </style>
@@ -104,10 +100,8 @@
                     {role}
                 </span>
                 <button onclick={async () => {
-                    const result = await deleteRole(user.user.userId, role);
-                    if (result && 'ok' in result) {
-                        onChangeRoles(result.ok);
-                    }
+                    const newRoles = await deleteRole(user.user.userId, role);
+                    onChangeRoles(newRoles);
                 }}>
                     <X/>
                 </button>
@@ -119,30 +113,20 @@
             </button>
             {#if showAddMenu}
                 <menu use:clickOutside={() => showAddMenu = false}>
-                    {#await allRoles}
-                        <Spinner/>
-                    {:then allRoles}
-                        {#if !allRoles || 'err' in allRoles}
-                            <p class="error">Failed to fetch role list.</p>
-                        {:else}
-                            {#each allRoles.ok.filter(role => !user.roles.includes(role)) as role}
-                                <div class="chip">
-                                    <span>
-                                        {role}
-                                    </span>
-                                    <button onclick={async () => {
-                                        showAddMenu = false;
-                                        const result = await addRole(user.user.userId, role);
-                                        if (result && 'ok' in result) {
-                                            onChangeRoles(result.ok);
-                                        }
-                                    }}>
-                                        <Plus/>
-                                    </button>
-                                </div>
-                            {/each}
-                        {/if}
-                    {/await}
+                    {#each allRoles.filter(role => !user.roles.includes(role)) as role}
+                        <div class="chip">
+                            <span>
+                                {role}
+                            </span>
+                            <button onclick={async () => {
+                                showAddMenu = false;
+                                const newRoles = await addRole(user.user.userId, role);
+                                onChangeRoles(newRoles);
+                            }}>
+                                <Plus/>
+                            </button>
+                        </div>
+                    {/each}
                 </menu>
             {/if}
         </div>

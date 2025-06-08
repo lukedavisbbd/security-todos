@@ -9,8 +9,8 @@ import { pool } from './pool.js';
 export async function createTeam(ownerId, teamName) {
     const result = await pool.query(
         `INSERT INTO teams (team_name, team_owner_id)
-         VALUES ($1, $2)
-         RETURNING team_id, team_name, team_owner_id`,
+        VALUES ($1, $2)
+        RETURNING team_id, team_name, team_owner_id`,
         [teamName, ownerId]
     );
     return result.rows[0];

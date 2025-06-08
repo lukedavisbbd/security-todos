@@ -4,16 +4,11 @@
     import qrcode from 'qrcode';
     import Spinner from "../Spinner.svelte";
     import { LoginRequestSchema, RegisterRequestSchema } from "common";
-    import { login, register } from "../../util/auth";
+    import { checkAuth, login, register } from "../../util/auth";
     import { z } from "zod/v4";
+  import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
     const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
         if (!registrationPromise) {
             close();
         }
@@ -45,30 +40,28 @@
             return;
         }
 
-        const result = await register(request.data);
-
-        if (!result) {
-            registrationErrors = {
-                errors: ['Failed to register.'],
-            };
-            return;
-        }
-        
-        if ('err' in result) {
-            registrationErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').RegisterRequest>} */(
-                result.err.data
-            );
-            return;
-        }
+        try {
+            const totpUri = await register(request.data);
             
-        return await qrcode.toDataURL(result.ok, {
-            color: {
-                dark: '#000',
-                light: '#fff0',
-            },
-            margin: 0,
-            width: 512,
-        });
+            return await qrcode.toDataURL(totpUri, {
+                color: {
+                    dark: '#000',
+                    light: '#fff0',
+                },
+                margin: 0,
+                width: 512,
+            });
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                registrationErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').RegisterRequest>} */(
+                    err.errorResponse.data
+                );
+            } else {
+                registrationErrors = {
+                    errors: ['Failed to register.'],
+                };
+            }
+        }
     };
 
     const performLogin = async () => {
@@ -85,21 +78,20 @@
             return;
         }
 
-        const result = await login(request.data);
-
-        if (!result) {
-            loginErrors = {
-                errors: ['Failed to sign in.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
+        try {
+            await login(request.data);
+            await checkAuth();
             close();
-        } else {
-            loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
+                    err.errorResponse.data
+                );
+            } else {
+                loginErrors = {
+                    errors: ['Failed to sign in.'],
+                };
+            }
         }
     };
 
@@ -144,7 +136,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if registrationPromise}
             {#await registrationPromise}

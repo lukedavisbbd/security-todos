@@ -21,10 +21,12 @@ const router = Router();
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.post('/', authenticated, async (req, res) => {
+router.post('/teams', authenticated, async (req, res) => {
   const { teamName } = CreateTeamSchema.parse(req.body);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const ownerId = req.jwtContents.user.userId;
+  
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const ownerId = authenticatedReq.jwtContents.user.userId;
   
   const newTeam = await createTeam(ownerId, teamName.trim());
   res.status(201).json(newTeam);
@@ -35,9 +37,10 @@ router.post('/', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/overview', authenticated, async (req, res) => {
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const userId = req.jwtContents.user.userId;
+router.get('/teams/overview', authenticated, async (req, res) => {
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const userId = authenticatedReq.jwtContents.user.userId;
   const teams = await getTeamsWithStats(userId);
   res.json(teams);
 });
@@ -47,9 +50,10 @@ router.get('/overview', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/member', authenticated, async (req, res) => {
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const userId = req.jwtContents.user.userId;
+router.get('/teams/member', authenticated, async (req, res) => {
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const userId = authenticatedReq.jwtContents.user.userId;
   const teams = await getTeamsForUser(userId);
   res.json(teams);
 });
@@ -59,10 +63,11 @@ router.get('/member', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.post('/:teamId/users', authenticated, async (req, res) => {
+router.post('/teams/:teamId/users', authenticated, async (req, res) => {
   const teamId = Number(req.params.teamId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
   
   if (isNaN(teamId)) {
     throw new AppError({
@@ -96,7 +101,7 @@ router.post('/:teamId/users', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.delete('/:teamId/users/:userId', authenticated, async (req, res) => {
+router.delete('/teams/:teamId/users/:userId', authenticated, async (req, res) => {
   const teamId = Number(req.params.teamId);
   const userIdToRemove = Number(req.params.userId);
   // @ts-ignore - jwtContents is added by authenticated middleware
@@ -133,10 +138,11 @@ router.delete('/:teamId/users/:userId', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/:teamId/users', authenticated, async (req, res) => {
+router.get('/teams/:teamId/users', authenticated, async (req, res) => {
   const teamId = Number(req.params.teamId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
   
   if (isNaN(teamId)) {
     throw new AppError({
@@ -181,10 +187,11 @@ router.get('/:teamId/users', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/:teamId', authenticated, async (req, res) => {
+router.get('/teams/:teamId', authenticated, async (req, res) => {
   const teamId = Number(req.params.teamId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
   
   if (isNaN(teamId)) {
     throw new AppError({

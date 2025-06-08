@@ -5,14 +5,9 @@
     import { CreateTaskSchema } from "common";
     import { createTask } from "../../util/tasks";
     import { z } from "zod/v4";
+    import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!createPromise) {
             close();
         }
@@ -31,22 +26,21 @@
             createErrors = z.treeifyError(request.error);
             return;
         }
-        const result = await createTask(request.data);
 
-        if (!result) {
-            createErrors = {
-                errors: ['Failed to create task.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
-            onTaskCreated(result.ok);
+        try {
+            const result = await createTask(request.data);
+            onTaskCreated(result);
             close();
-        } else {
-            createErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                createErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
+                    err.errorResponse.data
+                );
+            } else {
+                createErrors = {
+                    errors: ['Failed to create task.'],
+                }
+            }
         }
     };
 
@@ -106,7 +100,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if createPromise}
             <article>

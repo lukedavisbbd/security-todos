@@ -3,7 +3,7 @@ import { apiFetch } from "./http";
 /**
  * Get tasks for a specific user
  * @param {number} userId
- * @returns {Promise<import("./http").ApiResult<import('common').TaskWithAssignee[]> | null>}
+ * @returns {Promise<import('common').Task[]>}
  */
 export const getTasksForUser = async (userId) => {
     return await apiFetch(`/tasks/user/${userId}`);
@@ -17,7 +17,15 @@ export const getTasksForUser = async (userId) => {
  * @param {number} [options.statusId] - Filter by status
  * @param {number} [options.page=1] - Page number (1-based)
  * @param {number} [options.limit=10] - Items per page
- * @returns {Promise<import("./http").ApiResult<{tasks: import('common').TaskWithAssignee[], pagination: {currentPage: number, totalPages: number, totalItems: number, itemsPerPage: number}}> | null>}
+ * @returns {Promise<{
+ *     tasks: import('common').TaskWithAssignee[],
+ *     pagination: {
+ *         currentPage: number,
+ *         totalPages: number,
+ *         totalItems: number,
+ *         itemsPerPage: number,
+ *     },
+ * }>}
  */
 export const getTasksForTeam = async (teamId, options = {}) => {
     const searchParams = new URLSearchParams();
@@ -47,7 +55,7 @@ export const getTasksForTeam = async (teamId, options = {}) => {
 /**
  * Get specific task
  * @param {number} taskId
- * @returns {Promise<import("./http").ApiResult<import('common').Task> | null>}
+ * @returns {Promise<import('common').Task>}
  */
 export const getTaskById = async (taskId) => {
     return await apiFetch(`/tasks/${taskId}`);
@@ -56,7 +64,7 @@ export const getTaskById = async (taskId) => {
 /**
  * Create new task
  * @param {import('common').CreateTaskRequest} taskData
- * @returns {Promise<import("./http").ApiResult<import('common').Task> | null>}
+ * @returns {Promise<import('common').Task>}
  */
 export const createTask = async (taskData) => {
     return await apiFetch('/tasks', 'POST', taskData);
@@ -66,7 +74,7 @@ export const createTask = async (taskData) => {
  * Update task status
  * @param {number} taskId
  * @param {number} statusId
- * @returns {Promise<import("./http").ApiResult<{message: string}> | null>}
+ * @returns {Promise<{message: string}>}
  */
 export const updateTaskStatus = async (taskId, statusId) => {
     return await apiFetch(`/tasks/${taskId}/status`, 'PUT', { statusId });
@@ -77,7 +85,7 @@ export const updateTaskStatus = async (taskId, statusId) => {
  * @param {number} taskId
  * @param {string} name
  * @param {string | undefined} content
- * @returns {Promise<import("./http").ApiResult<{message: string}> | null>}
+ * @returns {Promise<{message: string}>}
  */
 export const updateTaskDetails = async (taskId, name, content) => {
     return await apiFetch(`/tasks/${taskId}`, 'PUT', { name, content });
@@ -87,7 +95,7 @@ export const updateTaskDetails = async (taskId, name, content) => {
  * Assign task to user
  * @param {number} taskId
  * @param {number} userId
- * @returns {Promise<import("./http").ApiResult<{message: string}> | null>}
+ * @returns {Promise<{message: string}>}
  */
 export const assignTaskToUser = async (taskId, userId) => {
     return await apiFetch(`/tasks/${taskId}/assign`, 'PUT', { userId });
@@ -96,7 +104,7 @@ export const assignTaskToUser = async (taskId, userId) => {
 /**
  * Delete task
  * @param {number} taskId
- * @returns {Promise<import("./http").ApiResult<{message: string}> | null>}
+ * @returns {Promise<{message: string}>}
  */
 export const deleteTask = async (taskId) => {
     return await apiFetch(`/tasks/${taskId}`, 'DELETE');
@@ -105,7 +113,7 @@ export const deleteTask = async (taskId) => {
 /**
  * Get task history
  * @param {number} taskId
- * @returns {Promise<import("./http").ApiResult<Array<{
+ * @returns {Promise<{
  *   history_id: number,
  *   task_id: number,
  *   status_id: number,
@@ -114,7 +122,7 @@ export const deleteTask = async (taskId) => {
  *   assigned_to_name: string | null,
  *   assigned_to_email: string | null,
  *   timestamp: string
- * }>> | null>}
+ * }[]>}
  */
 export const getTaskHistory = async (taskId) => {
     return await apiFetch(`/tasks/${taskId}/history`);

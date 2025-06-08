@@ -3,16 +3,11 @@
     import { fade } from "svelte/transition";
     import Spinner from "../Spinner.svelte";
     import { LoginRequestSchema } from "common";
-    import { login } from "../../util/auth";
+    import { checkAuth, login } from "../../util/auth";
     import { z } from "zod/v4";
+  import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!loginPromise) {
             close();
         }
@@ -33,21 +28,20 @@
             return;
         }
 
-        const result = await login(request.data);
-
-        if (!result) {
-            loginErrors = {
-                errors: ['Failed to sign in.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
+        try {
+            await login(request.data);
+            await checkAuth();
             close();
-        } else {
-            loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
+                    err.errorResponse.data
+                );
+            } else {
+                loginErrors = {
+                    errors: ['Failed to sign in.'],
+                }
+            }
         }
 
         twoFactor = '';
@@ -85,7 +79,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if loginPromise}
             <article>

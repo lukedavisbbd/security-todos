@@ -5,25 +5,17 @@ import { apiFetch } from "./http";
  */
 export const searchUsers = async (search) => {
     /**
-     * @type {import("./http").ApiResult<import("common").UserWithRoles[]> | null}
+     * @type {import("common").UserWithRoles[]}
      */
     const result = await apiFetch(`/users?search=${encodeURIComponent(search)}`);
-
-    if (!result)
-        return null;
-
     return result;
 };
 
 export const fetchRoles = async () => {
     /**
-     * @type {import("./http").ApiResult<string[]> | null}
+     * @type {string[]}
      */
     const result = await apiFetch(`/roles`);
-
-    if (!result)
-        return null;
-
     return result;
 };
 
@@ -33,15 +25,11 @@ export const fetchRoles = async () => {
  */
 export const addRole = async (userId, role) => {
     /**
-     * @type {import("./http").ApiResult<string[]> | null}
+     * @type {string[]}
      */
     const result = await apiFetch(`/users/${userId}/roles`, 'POST', {
         role,
     });
-
-    if (!result)
-        return null;
-
     return result;
 };
 
@@ -51,14 +39,10 @@ export const addRole = async (userId, role) => {
  */
 export const deleteRole = async (userId, role) => {
     /**
-     * @type {import("./http").ApiResult<string[]> | null}
+     * @type {string[]}
      */
     const result = await apiFetch(`/users/${userId}/roles`, 'DELETE', {
         role,
     });
-
-    if (!result)
-        return null;
-
     return result;
 };

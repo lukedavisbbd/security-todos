@@ -1,9 +1,15 @@
 import { userJwtContents } from "./stores";
 
-/**
- * @template T
- * @typedef {{ ok: T } | { err: import("common").ErrorResponse }} ApiResult
- */
+export class ApiError extends Error {
+    /** @type {import("common").ErrorResponse} */
+    errorResponse;
+
+    /** @param {import("common").ErrorResponse} errorResponse */
+    constructor(errorResponse) {
+        super(errorResponse.message);
+        this.errorResponse = errorResponse;
+    }
+}
 
 /**
  * @template T
@@ -11,39 +17,30 @@ import { userJwtContents } from "./stores";
  * @param {string} path
  * @param {string} method
  * @param {B | undefined} body
- * @returns {Promise<ApiResult<T> | null>}
+ * @returns {Promise<T>}
  */
 export const apiFetch = async (path, method = 'GET', body = undefined) => {
-    try {
-        const resp = await fetch(`/api${path}`, {
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            method,
-            body: JSON.stringify(body),
-        });
+    const resp = await fetch(`/api${path}`, {
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        method,
+        body: JSON.stringify(body),
+    });
 
-        if (resp.status === 204) {
-            return /** @type {ApiResult<T>} */({ ok: /** @type {T} */({}) });
-        }
+    if (resp.status === 204) {
+        return /** @type {T} */(null);
+    }
 
-        /**
-         * @type {ApiResult<T>}
-         */
-        const result = resp.ok ? {
-            ok: /** @type {T} */(await resp.json()),
-        } : {
-            err: await resp.json()
-        };
-
-        if ('err' in result && result.err.code === 'not_logged_in') {
+    if (resp.ok) {
+        return /** @type {T} */(await resp.json());
+    } else {
+        /** @type {import("common").ErrorResponse} */
+        const err = await resp.json();
+        if (err.code === 'not_logged_in') {
             userJwtContents.set(null);
         }
-        
-        return result;
-    } catch (err) {
-        console.log(err);
-        return null;
+        throw new ApiError(err);
     }
 };

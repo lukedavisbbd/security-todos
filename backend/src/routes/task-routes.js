@@ -43,7 +43,7 @@ async function hasTeamAccess(teamId, userId) {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/user/:userId', authenticated, async (req, res) => {
+router.get('/tasks/user/:userId', authenticated, async (req, res) => {
     const targetUserId = Number(req.params.userId);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -89,7 +89,7 @@ router.get('/user/:userId', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/team/:teamId', authenticated, async (req, res) => {
+router.get('/tasks/team/:teamId', authenticated, async (req, res) => {
     const teamId = Number(req.params.teamId);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -116,9 +116,9 @@ router.get('/team/:teamId', authenticated, async (req, res) => {
     }
 
     const userId = req.query.userId ? 
-        (req.query.userId === 'null' ? null : Number(req.query.userId)) : 
-        undefined;
-    const statusId = req.query.statusId ? Number(req.query.statusId) : undefined;
+        (req.query.userId === 'null' ? NaN : Number(req.query.userId)) : 
+        NaN;
+    const statusId = req.query.statusId ? Number(req.query.statusId) : NaN;
     const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
     const limit = req.query.limit ? Math.min(100, Math.max(1, Number(req.query.limit))) : 10;
 
@@ -159,7 +159,7 @@ router.get('/team/:teamId', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/:id', authenticated, async (req, res) => {
+router.get('/tasks/:id', authenticated, async (req, res) => {
     const taskId = Number(req.params.id);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -203,7 +203,7 @@ router.get('/:id', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.post('/', authenticated, async (req, res) => {
+router.post('/tasks', authenticated, async (req, res) => {
     const data = CreateTaskSchema.parse(req.body);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -233,7 +233,7 @@ router.post('/', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.put('/:id/status', authenticated, async (req, res) => {
+router.put('/tasks/:id/status', authenticated, async (req, res) => {
     const taskId = Number(req.params.id);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -279,7 +279,7 @@ router.put('/:id/status', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.put('/:id', authenticated, async (req, res) => {
+router.put('/tasks/:id', authenticated, async (req, res) => {
     const taskId = Number(req.params.id);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -325,7 +325,7 @@ router.put('/:id', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.put('/:id/assign', authenticated, async (req, res) => {
+router.put('/tasks/:id/assign', authenticated, async (req, res) => {
     const taskId = Number(req.params.id);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -371,7 +371,7 @@ router.put('/:id/assign', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.delete('/:id', authenticated, async (req, res) => {
+router.delete('/tasks/:id', authenticated, async (req, res) => {
     const taskId = Number(req.params.id);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;
@@ -416,7 +416,7 @@ router.delete('/:id', authenticated, async (req, res) => {
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/:id/history', authenticated, async (req, res) => {
+router.get('/tasks/:id/history', authenticated, async (req, res) => {
     const taskId = Number(req.params.id);
     // @ts-ignore - jwtContents is added by authenticated middleware
     const currentUserId = req.jwtContents.user.userId;

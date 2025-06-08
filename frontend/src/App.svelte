@@ -1,18 +1,18 @@
 <script>
-  import { whoami } from "./util/auth";
+  import { checkAuth, whoami } from "./util/auth";
   import { onMount } from "svelte";
   import { userJwtContents } from "./util/stores";
   import Home from "./pages/Home.svelte";
-  import Teams from "./pages/Teams.svelte";
   import TeamDetail from "./pages/TeamDetail.svelte";
   import TaskHistory from "./pages/TaskHistory.svelte";
   import { Router } from "@mateothegreat/svelte5-router";
   import AccessControl from "./pages/AccessControl.svelte";
   import Navbar from "./lib/Navbar.svelte";
+  import Spinner from "./lib/Spinner.svelte";
+
+  let authPromise = checkAuth();
 
   onMount(() => {
-    whoami();
-    
     const interval = setInterval(() => {
       $userJwtContents && whoami()
     }, 60000);
@@ -26,24 +26,38 @@
       component: Home,
     },
     {
-      path: "/teams",
-      component: Teams,
-    },
-    {
       path: "/team/(?<teamId>.*)",
       component: TeamDetail,
     },
     {
       path: "/history/(?<taskId>.*)",
-        component: TaskHistory
+      component: TaskHistory,
     },
     {
       path: "/access",
       component: AccessControl,
+      hooks: {
+        pre: () => $userJwtContents?.roles.includes('access_admin'),
+      },
     },
   ];
 </script>
 
-<Navbar/>
+<style>
+  .loading {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 5rem;
+  }
+</style>
 
-<Router {routes}/>
+{#await authPromise}
+  <main class="loading">
+    <Spinner/>
+  </main>
+{:then}
+  <Navbar/>
+  <Router {routes}/>
+{/await}

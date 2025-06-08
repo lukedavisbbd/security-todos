@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth-routes.js';
-import accessControlRoutes from './access-control-routes.js';
+import roleRoutes from './role-routes.js';
 import taskRoutes from './task-routes.js';
 import teamRoutes from './team-routes.js';
 import statusRoutes from './status-routes.js';
@@ -15,10 +15,10 @@ router.get('/', (_req, res) => {
 });
 
 router.use('/auth', authRoutes);
-router.use('/tasks', taskRoutes);
-router.use('/teams', teamRoutes);
+router.use(taskRoutes);
+router.use(teamRoutes);
 router.use(statusRoutes);
 router.use(userRoutes)
-router.use(accessControlRoutes);
+router.use(roleRoutes);
 
 export default router;

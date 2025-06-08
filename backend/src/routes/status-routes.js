@@ -9,7 +9,7 @@ const router = Router();
  * @param {import('../index.js').AuthenticatedRequest} req 
  * @param {import('express').Response} res 
  */
-router.get('/statuses', authenticated, async (req, res) => {
+router.get('/statuses', async (req, res) => {
   const statuses = await getAllStatuses();
   res.json(statuses);
 });

@@ -73,7 +73,7 @@ h4 {
 }
 
 h5 {
-  font-size: 1rem;
+  font-size: 1.25rem;
 }
 
 h6 {
@@ -84,7 +84,7 @@ h6 {
   display: contents;
 }
 
-main > article {
+main {
   max-width: 56rem;
   margin: 0 auto;
   padding: 1rem 2rem;
@@ -358,4 +358,22 @@ label.inline {
 
 .animate-spin {
   animation: spin 2s linear infinite;
+}
+
+.loading-wrapper {
+    text-align: center;
+    padding: 3rem 1rem;
+    font-size: 2rem;
+}
+
+.error-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin: 4rem 0;
+
+    p {
+        color: #c00;
+    }
 }

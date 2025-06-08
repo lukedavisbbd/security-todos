@@ -1,17 +1,18 @@
 <script>
     import { Plus, UserMinus } from "@lucide/svelte";
-    import { removeUserFromTeam } from "../../util/team";
+    import { getTeamMembers, removeUserFromTeam } from "../../util/team";
     import ProfileLogo from "../ProfileLogo.svelte";
     import { gravatarUrl } from "../../util/stores";
+    import AddMemberModal from "../modals/AddMemberModal.svelte";
+  import Spinner from "../Spinner.svelte";
 
     /** @type {{ 
-     *   members: import('common').TeamMember[], 
      *   isTeamOwner: boolean,
      *   teamId: number,
-     *   onAddMember: () => void,
-     *   onRemoveMember: () => void
      * }} */
-    let { members, isTeamOwner, teamId, onAddMember, onRemoveMember } = $props();
+    let { isTeamOwner, teamId } = $props();
+
+    let members = $state(getTeamMembers(teamId));
 
     /**
      * Remove a member from the team
@@ -22,12 +23,8 @@
             return;
         }
 
-        const result = await removeUserFromTeam(teamId, member.user_id);
-        if (result && 'ok' in result) {
-            onRemoveMember();
-        } else {
-            alert('Failed to remove member from team.');
-        }
+        await removeUserFromTeam(teamId, member.user_id);
+        members = getTeamMembers(teamId);
     };
 
     /**
@@ -38,6 +35,8 @@
     const getUserInitials = (name) => {
         return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
     };
+
+    let showAddMember = $state(false);
 </script>
 
 <style>
@@ -55,44 +54,46 @@
         margin: 0;
     }
 
-    .members-table {
+    table {
         width: 100%;
         border-collapse: collapse;
-        border: 1px solid #0003;
         border-radius: 0.5rem;
+        box-shadow: 0 0.15rem 0.15rem #0001;
         overflow: hidden;
         background-color: #fafafa;
-    }
 
-    .members-table th {
-        background-color: #f0f0f0;
-        padding: 1rem;
-        text-align: left;
-        font-weight: 500;
-        border-bottom: 1px solid #0003;
-    }
+        th {
+            background-color: #f0f0f0;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+            border-bottom: 1px solid #0003;
 
-    .members-table th:first-child {
-        width: 100%;
-    }
+            &:first-child {
+                width: 100%;
+            }
 
-    .members-table th:last-child {
-        width: 120px;
-        text-align: center;
-    }
+            &:last-child {
+                width: 120px;
+                text-align: center;
+            }
+        }
 
-    .members-table td {
-        padding: 1rem;
-        border-bottom: 1px solid #0001;
-        vertical-align: middle;
-    }
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #0001;
+            vertical-align: middle;
+        }
 
-    .members-table tr:last-child td {
-        border-bottom: none;
-    }
+        tr {
+            &:last-child td {
+                border-bottom: none;
+            }
 
-    .members-table tr:hover {
-        background-color: #f8f8f8;
+            &:hover {
+                background-color: #f8f8f8;
+            }
+        }
     }
 
     .member-info {
@@ -139,14 +140,17 @@
         color: #333;
     }
 
-    @media (max-width: 768px) {
-        .members-table {
+    @media (max-width: 48rem) {
+        table {
             font-size: 0.875rem;
-        }
         
-        .members-table th,
-        .members-table td {
-            padding: 0.75rem 0.5rem;
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            th:last-child {
+                width: 80px;
+            }
         }
 
         .member-info {
@@ -156,18 +160,18 @@
         .actions {
             min-width: 60px;
         }
-
-        .members-table th:last-child {
-            width: 80px;
-        }
     }
 </style>
 
-<section>
+{#await members}
+    <section class="loading-wrapper">
+        <Spinner/>
+    </section>
+{:then members}
     <header class="members-header">
         <h2 class="section-title">Members ({members.length})</h2>
         {#if isTeamOwner}
-            <button class="btn btn-primary" onclick={onAddMember}>
+            <button class="btn btn-primary" onclick={() => showAddMember = true}>
                 <Plus/>
                 Add Member
             </button>
@@ -180,7 +184,7 @@
             <p>Add members to your team to start collaborating.</p>
         </div>
     {:else}
-        <table class="members-table">
+        <table>
             <thead>
                 <tr>
                     <th>Member</th>
@@ -222,4 +226,12 @@
             </tbody>
         </table>
     {/if}
-</section>
+    {#if isTeamOwner && showAddMember}
+        <AddMemberModal
+            {teamId}
+            existingMembers={members}
+            close={() => showAddMember = false}
+            onMemberAdded={() => getTeamMembers(teamId)}
+        />
+    {/if}
+{/await}

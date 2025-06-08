@@ -3,15 +3,14 @@ import { pool } from './pool.js';
 /**
  * Get all tasks assigned to a specific user.
  * @param {number} userId
- * @returns {Promise<import('common').TaskWithAssignee[]>}
+ * @returns {Promise<import('common').Task[]>}
  */
 export async function getTasksForUser(userId) {
     const result = await pool.query(
-        `SELECT t.task_id, t.task_name, t.task_content, t.status_id, s.status_name
-         FROM tasks t
-         JOIN statuses s ON t.status_id = s.status_id
-         WHERE t.assigned_to_id = $1
-         ORDER BY t.task_id`,
+        `SELECT task_id team_id, status_id, assigned_to_id, task_name, task_content
+        FROM tasks
+        WHERE t.assigned_to_id = $1
+        ORDER BY t.task_id`,
         [userId]
     );
     return result.rows;
@@ -25,7 +24,7 @@ export async function getTasksForUser(userId) {
  * @param {number} [options.statusId] - Filter by status
  * @param {number} [options.page=1] - Page number (1-based)
  * @param {number} [options.limit=10] - Items per page
- * @returns {Promise<{tasks: import('common').TaskWithAssignee[], pagination: {currentPage: number, totalPages: number, totalItems: number, itemsPerPage: number}}>}
+ * @returns {Promise<{tasks: import('common').Task[], pagination: {currentPage: number, totalPages: number, totalItems: number, itemsPerPage: number}}>}
  */
 export async function getTasksForTeam(teamId, options = {}) {
     const {
@@ -71,10 +70,8 @@ export async function getTasksForTeam(teamId, options = {}) {
     const offset = (page - 1) * limit;
 
     const tasksQuery = `
-        SELECT t.task_id, t.task_name, t.task_content, t.status_id, s.status_name, u.email AS assigned_to_email
-        FROM tasks t
-        JOIN statuses s ON t.status_id = s.status_id
-        LEFT JOIN users u ON t.assigned_to_id = u.user_id
+        SELECT task_id team_id, status_id, assigned_to_id, task_name, task_content
+        FROM tasks
         WHERE ${whereClause}
         ORDER BY t.task_id
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
