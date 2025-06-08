@@ -62,7 +62,6 @@
      * }} */
     let { task, close, onTaskUpdated } = $props();
 
-    // Initialize form values from task
     let taskName = $state(task.task_name);
     let taskContent = $state(task.task_content || '');
     

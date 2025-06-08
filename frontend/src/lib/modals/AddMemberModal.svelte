@@ -1,5 +1,5 @@
 <script>
-    import { X, Search, Plus } from "@lucide/svelte";
+    import { X, Search, Plus, AlertCircle } from "@lucide/svelte";
     import { fade } from "svelte/transition";
     import Spinner from "../Spinner.svelte";
     import ProfileLogo from "../ProfileLogo.svelte";
@@ -34,7 +34,11 @@
             onMemberAdded();
             close();
         } else {
-            addError = result.err.message || 'Failed to add member to team.';
+            if (result.err.data?.errors?.some(error => error.includes('maximum capacity'))) {
+                addError = 'Team has reached maximum capacity of 10 members.';
+            } else {
+                addError = result.err.message || 'Failed to add member to team.';
+            }
         }
         
         addingMember = null;
@@ -72,6 +76,9 @@
     let users = $state([]);
     let usersLoading = $state(false);
     let addingMember = $state(null);
+
+    const currentMemberCount = $derived(existingMembers.length);
+    const isAtCapacity = $derived(currentMemberCount >= 10);
 
     $effect(() => {
         search.valueOf;
@@ -115,6 +122,25 @@
         width: 100%;
         max-width: 28rem;
     }
+
+    .capacity-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #f0f4f8;
+        border: 1px solid #bee3f8;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        color: #2d3748;
+    }
+
+    .capacity-warning {
+        background-color: #fed7d7;
+        border-color: #feb2b2;
+        color: #c53030;
+    }
+
     .search-results {
         max-height: 20rem;
         overflow-y: auto;
@@ -192,65 +218,80 @@
             </button>
         </header>
         <article>
-            {#if addError}
-                <p class="error">{addError}</p>
-            {/if}
-            <div class="inline-icon">
-                <Search/>
-                <label class="inline" for="search">Search Users</label>
-                <input id="search" type="text" name="search" placeholder="" bind:value={search}>
+            <div class="capacity-info" class:capacity-warning={isAtCapacity}>
+                <AlertCircle/>
+                <span>
+                    {#if isAtCapacity}
+                        Team is at maximum capacity ({currentMemberCount}/10)
+                    {:else}
+                        Current members: {currentMemberCount}/10
+                    {/if}
+                </span>
             </div>
-            
-            {#if search.trim().length < 2}
-                <div class="search-hint">
-                    Enter at least 2 characters to search for users
-                </div>
-            {:else if usersLoading}
-                <div class="search-state">
-                    <Spinner/>
-                </div>
-            {:else if searchError}
-                <div class="search-state">
-                    <p class="error">{searchError}</p>
-                </div>
-            {:else if users.length === 0}
-                <div class="search-state">
-                    No users found matching "{search}"
-                </div>
+
+            {#if isAtCapacity}
+                <p class="error">Cannot add more members. Team has reached the maximum capacity of 10 members.</p>
             {:else}
-                <div class="search-results">
-                    {#each users as user (user.user.userId)}
-                        <div class="user-item">
-                            <div class="user-info">
-                                <ProfileLogo 
-                                    logoSrc={gravatarUrl(user.user.email)} 
-                                    initials={getUserInitials(user.user.name)}
-                                />
-                                <div class="user-details">
-                                    <div class="user-name">{user.user.name}</div>
-                                    <div class="user-email">{user.user.email}</div>
+                {#if addError}
+                    <p class="error">{addError}</p>
+                {/if}
+                <div class="inline-icon">
+                    <Search/>
+                    <label class="inline" for="search">Search Users</label>
+                    <input id="search" type="text" name="search" placeholder="" bind:value={search}>
+                </div>
+                
+                {#if search.trim().length < 2}
+                    <div class="search-hint">
+                        Enter at least 2 characters to search for users
+                    </div>
+                {:else if usersLoading}
+                    <div class="search-state">
+                        <Spinner/>
+                    </div>
+                {:else if searchError}
+                    <div class="search-state">
+                        <p class="error">{searchError}</p>
+                    </div>
+                {:else if users.length === 0}
+                    <div class="search-state">
+                        No users found matching "{search}"
+                    </div>
+                {:else}
+                    <div class="search-results">
+                        {#each users as user (user.user.userId)}
+                            <div class="user-item">
+                                <div class="user-info">
+                                    <ProfileLogo 
+                                        logoSrc={gravatarUrl(user.user.email)} 
+                                        initials={getUserInitials(user.user.name)}
+                                    />
+                                    <div class="user-details">
+                                        <div class="user-name">{user.user.name}</div>
+                                        <div class="user-email">{user.user.email}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    {#if isExistingMember(user.user)}
+                                        <span class="member-badge">Already a member</span>
+                                    {:else if addingMember === user.user.userId}
+                                        <button class="btn btn-small btn-primary" disabled>
+                                            <Spinner/>
+                                        </button>
+                                    {:else}
+                                        <button 
+                                            class="btn btn-small btn-primary" 
+                                            onclick={() => handleAddMember(user)}
+                                            title="Add to team"
+                                        >
+                                            <Plus/>
+                                        </button>
+                                    {/if}
                                 </div>
                             </div>
-                            <div>
-                                {#if isExistingMember(user.user)}
-                                    <span class="member-badge">Already a member</span>
-                                {:else if addingMember === user.user.userId}
-                                    <button class="btn btn-small btn-primary" disabled>
-                                        <Spinner/>
-                                    </button>
-                                {:else}
-                                    <button 
-                                        class="btn btn-small btn-primary" 
-                                        onclick={() => handleAddMember(user)}
-                                        title="Add to team"
-                                    >
-                                        <Plus/>
-                                    </button>
-                                {/if}
-                            </div>
-                        </div>
-                    {/each}
-                </div>
+                        {/each}
+                    </div>
+                {/if}
             {/if}
         </article>
     </dialog>

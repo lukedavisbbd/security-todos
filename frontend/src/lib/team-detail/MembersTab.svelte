@@ -1,33 +1,73 @@
 <script>
-    import { Plus, UserMinus } from "@lucide/svelte";
-    import { removeUserFromTeam } from "../../util/team";
+    import { Plus, UserMinus, Crown, TrendingUp } from "@lucide/svelte";
+    import { removeUserFromTeam, promoteToTeamLead } from "../../util/team";
     import ProfileLogo from "../ProfileLogo.svelte";
+    import ConfirmationModal from "../modals/ConfirmationModal.svelte";
     import { gravatarUrl } from "../../util/stores";
 
     /** @type {{ 
      *   members: import('common').TeamMember[], 
      *   isTeamOwner: boolean,
      *   teamId: number,
+     *   teamOwnerId: number,
      *   onAddMember: () => void,
      *   onRemoveMember: () => void
      * }} */
-    let { members, isTeamOwner, teamId, onAddMember, onRemoveMember } = $props();
+    let { members, isTeamOwner, teamId, teamOwnerId, onAddMember, onRemoveMember } = $props();
+
+    let showConfirmation = $state(false);
+    let confirmationConfig = $state({
+        title: '',
+        message: '',
+        confirmText: '',
+        actionType: 'primary',
+        action: null
+    });
 
     /**
      * Remove a member from the team
      * @param {import('common').TeamMember} member
      */
-    const handleRemoveMember = async (member) => {
-        if (!confirm(`Are you sure you want to remove ${member.name} from this team?`)) {
-            return;
-        }
+    const handleRemoveMember = (member) => {
+        confirmationConfig = {
+            title: 'Remove Team Member',
+            message: `Are you sure you want to remove ${member.name} from this team? They will lose access to all team tasks and data.`,
+            confirmText: 'Remove Member',
+            actionType: 'danger',
+            action: async () => {
+                const result = await removeUserFromTeam(teamId, member.user_id);
+                if (result && 'ok' in result) {
+                    onRemoveMember();
+                    showConfirmation = false;
+                } else {
+                    throw new Error('Failed to remove member from team.');
+                }
+            }
+        };
+        showConfirmation = true;
+    };
 
-        const result = await removeUserFromTeam(teamId, member.user_id);
-        if (result && 'ok' in result) {
-            onRemoveMember();
-        } else {
-            alert('Failed to remove member from team.');
-        }
+    /**
+     * Promote a member to team lead
+     * @param {import('common').TeamMember} member
+     */
+    const handlePromoteMember = (member) => {
+        confirmationConfig = {
+            title: 'Promote to Team Lead',
+            message: `Are you sure you want to promote ${member.name} to team lead? They will become the new owner of this team and you will become a regular member.`,
+            confirmText: 'Promote to Lead',
+            actionType: 'primary',
+            action: async () => {
+                const result = await promoteToTeamLead(teamId, member.user_id);
+                if (result && 'ok' in result) {
+                    onRemoveMember(); // Refresh the team data
+                    showConfirmation = false;
+                } else {
+                    throw new Error('Failed to promote member to team lead.');
+                }
+            }
+        };
+        showConfirmation = true;
     };
 
     /**
@@ -37,6 +77,15 @@
      */
     const getUserInitials = (name) => {
         return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
+    };
+
+    /**
+     * Check if member is the team owner
+     * @param {import('common').TeamMember} member
+     * @returns {boolean}
+     */
+    const isMemberTeamOwner = (member) => {
+        return member.user_id === teamOwnerId;
     };
 </script>
 
@@ -53,6 +102,17 @@
     .section-title {
         font-size: 1.5rem;
         margin: 0;
+    }
+
+    .capacity-info {
+        color: #666;
+        font-size: 0.875rem;
+        margin-left: 0.5rem;
+    }
+
+    .capacity-warning {
+        color: #d69e2e;
+        font-weight: 500;
     }
 
     .members-table {
@@ -77,7 +137,7 @@
     }
 
     .members-table th:last-child {
-        width: 120px;
+        width: 140px;
         text-align: center;
     }
 
@@ -113,6 +173,9 @@
         font-weight: 500;
         color: #333;
         word-wrap: break-word;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .member-email {
@@ -125,7 +188,8 @@
         display: flex;
         gap: 0.5rem;
         justify-content: center;
-        min-width: 80px;
+        min-width: 120px;
+        flex-wrap: wrap;
     }
 
     .empty-state {
@@ -154,22 +218,34 @@
         }
 
         .actions {
-            min-width: 60px;
+            min-width: 100px;
         }
 
         .members-table th:last-child {
-            width: 80px;
+            width: 120px;
         }
     }
 </style>
 
 <section>
     <header class="members-header">
-        <h2 class="section-title">Members ({members.length})</h2>
-        {#if isTeamOwner}
+        <div>
+            <h2 class="section-title">
+                Members ({members.length})
+                <span class="capacity-info" class:capacity-warning={members.length >= 9}>
+                    ({members.length}/10)
+                </span>
+            </h2>
+        </div>
+        {#if isTeamOwner && members.length < 10}
             <button class="btn btn-primary" onclick={onAddMember}>
                 <Plus/>
                 Add Member
+            </button>
+        {:else if isTeamOwner && members.length >= 10}
+            <button class="btn btn-primary" disabled title="Team has reached maximum capacity">
+                <Plus/>
+                Team Full
             </button>
         {/if}
     </header>
@@ -199,7 +275,12 @@
                                     initials={getUserInitials(member.name)}
                                 />
                                 <div class="member-details">
-                                    <div class="member-name">{member.name}</div>
+                                    <div class="member-name">
+                                        {member.name}
+                                        {#if isMemberTeamOwner(member)}
+                                            <Crown class="owner-badge" title="Team Owner"/>
+                                        {/if}
+                                    </div>
                                     <div class="member-email">{member.email}</div>
                                 </div>
                             </div>
@@ -207,13 +288,26 @@
                         {#if isTeamOwner}
                             <td>
                                 <div class="actions">
-                                    <button 
-                                        class="btn btn-small btn-danger" 
-                                        onclick={() => handleRemoveMember(member)}
-                                        title="Remove from team"
-                                    >
-                                        <UserMinus/>
-                                    </button>
+                                    {#if !isMemberTeamOwner(member)}
+                                        <button 
+                                            class="btn btn-small btn-primary" 
+                                            onclick={() => handlePromoteMember(member)}
+                                            title="Promote to team lead"
+                                        >
+                                            <TrendingUp/>
+                                        </button>
+                                        <button 
+                                            class="btn btn-small btn-danger" 
+                                            onclick={() => handleRemoveMember(member)}
+                                            title="Remove from team"
+                                        >
+                                            <UserMinus/>
+                                        </button>
+                                    {:else}
+                                        <span title="Team owner cannot be removed" style="color: #666; font-size: 0.75rem;">
+                                            Owner
+                                        </span>
+                                    {/if}
                                 </div>
                             </td>
                         {/if}
@@ -223,3 +317,14 @@
         </table>
     {/if}
 </section>
+
+{#if showConfirmation}
+    <ConfirmationModal 
+        title={confirmationConfig.title}
+        message={confirmationConfig.message}
+        confirmText={confirmationConfig.confirmText}
+        actionType={confirmationConfig.actionType}
+        close={() => showConfirmation = false}
+        onConfirm={confirmationConfig.action}
+    />
+{/if}

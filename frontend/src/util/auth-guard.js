@@ -1,3 +1,4 @@
+import { goto } from "@mateothegreat/svelte5-router";
 import { userJwtContents } from "./stores";
 import { derived } from "svelte/store";
 
@@ -35,7 +36,7 @@ export function createAuthGuard(options = {}) {
             if (onUnauthorized) {
                 onUnauthorized();
             } else {
-                window.location.href = redirectTo;
+                goto(redirectTo)
             }
             return { isAuthorized: false, isLoading: false };
         }
@@ -51,7 +52,7 @@ export function createAuthGuard(options = {}) {
                     onUnauthorized();
                 } else {
                     // Redirect to teams if user is logged in but lacks required role
-                    window.location.href = currentUser ? '/teams' : redirectTo;
+                    goto(currentUser ? '/teams' : redirectTo);
                 }
                 return { isAuthorized: false, isLoading: false };
             }

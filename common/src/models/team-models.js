@@ -14,14 +14,12 @@ export const AddUserToTeamSchema = z.object({
     .positive({ message: 'userId must be a positive integer' }),
 });
 
-// Base Team type
 export const TeamSchema = z.object({
   team_id: z.number(),
   team_name: z.string(),
   team_owner_id: z.number(),
 });
 
-// Team with statistics type
 export const TeamWithStatsSchema = z.object({
   team_id: z.number(),
   team_name: z.string(),
@@ -31,7 +29,6 @@ export const TeamWithStatsSchema = z.object({
   task_count: z.number(),
 });
 
-// Team member type
 export const TeamMemberSchema = z.object({
   user_id: z.number(),
   email: z.string(),

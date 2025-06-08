@@ -2,10 +2,26 @@ import { apiFetch } from "./http";
 
 /**
  * Get teams overview with stats for current user
- * @returns {Promise<import("./http").ApiResult<import('common').TeamWithStats[]> | null>}
+ * @param {Object} [options] - Pagination options
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Items per page
+ * @returns {Promise<import("./http").ApiResult<{teams: import('common').TeamWithStats[], pagination: {currentPage: number, totalPages: number, totalItems: number, itemsPerPage: number}}> | null>}
  */
-export const getTeamsOverview = async () => {
-    return await apiFetch('/teams/overview');
+export const getTeamsOverview = async (options = {}) => {
+    const searchParams = new URLSearchParams();
+    
+    if (options.page !== undefined) {
+        searchParams.append('page', options.page.toString());
+    }
+    
+    if (options.limit !== undefined) {
+        searchParams.append('limit', options.limit.toString());
+    }
+    
+    const queryString = searchParams.toString();
+    const url = `/teams/overview${queryString ? `?${queryString}` : ''}`;
+    
+    return await apiFetch(url);
 };
 
 /**
@@ -65,4 +81,38 @@ export const removeUserFromTeam = async (teamId, userId) => {
  */
 export const getTeamById = async (teamId) => {
     return await apiFetch(`/teams/${teamId}`);
+};
+
+/**
+ * Delete a team
+ * @param {number} teamId
+ * @returns {Promise<import("./http").ApiResult<void> | null>}
+ */
+export const deleteTeam = async (teamId) => {
+    return await apiFetch(`/teams/${teamId}`, 'DELETE');
+};
+
+/**
+ * Promote team member to team lead
+ * @param {number} teamId
+ * @param {number} userId
+ * @returns {Promise<import("./http").ApiResult<void> | null>}
+ */
+export const promoteToTeamLead = async (teamId, userId) => {
+    return await apiFetch(`/teams/${teamId}/promote/${userId}`, 'PUT');
+};
+
+/**
+ * Get team reports and analytics
+ * @param {number} teamId
+ * @returns {Promise<import("./http").ApiResult<{
+ *   overview: any,
+ *   statusSummary: Array<{status_id: number, status_name: string, task_count: number}>,
+ *   memberSummary: Array<any>,
+ *   memberStats: Array<any>,
+ *   recentActivity: Array<any>
+ * }> | null>}
+ */
+export const getTeamReports = async (teamId) => {
+    return await apiFetch(`/teams/${teamId}/reports`);
 };

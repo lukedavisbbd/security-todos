@@ -120,7 +120,7 @@ router.get('/team/:teamId', authenticated, async (req, res) => {
         undefined;
     const statusId = req.query.statusId ? Number(req.query.statusId) : undefined;
     const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
-    const limit = req.query.limit ? Math.min(100, Math.max(1, Number(req.query.limit))) : 10;
+    const limit = req.query.limit ? Math.min(20, Math.max(1, Number(req.query.limit))) : 10;
 
     if (req.query.userId && req.query.userId !== 'null' && (isNaN(userId) || userId < 1)) {
         throw new AppError({

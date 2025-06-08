@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { requireAuth } from "../util/auth-guard";
-    import { getTeamById } from "../util/team";
+    import { getTeamById, getTeamReports } from "../util/team";
     import { getTasksForTeam } from "../util/tasks";
     import { getAllStatuses } from "../util/status";
     import { getTeamMembers } from "../util/team";
@@ -11,7 +11,11 @@
     import CreateTaskModal from "../lib/modals/CreateTaskModal.svelte";
     import EditTaskModal from "../lib/modals/EditTaskModal.svelte";
     import AddMemberModal from "../lib/modals/AddMemberModal.svelte";
+    import DeleteTeamModal from "../lib/modals/DeleteTeamModal.svelte";
     import { userJwtContents } from "../util/stores";
+    import { goto } from "@mateothegreat/svelte5-router";
+  import { ArrowLeft } from "@lucide/svelte";
+  import ReportsTab from "../lib/team-detail/ReportsTab.svelte";
 
     let { route } = $props();
     const teamId = parseInt(route.result.path.params.teamId);
@@ -20,11 +24,13 @@
     const authState = $derived($authGuard);
     
     let team = $state(null);
+    let reports = $state(null);
     let tasks = $state([]);
     let members = $state([]);
     let statuses = $state([]);
     let loading = $state(true);
     let tasksLoading = $state(false);
+    let reportsLoading = $state(false);
     let error = $state('');
     let activeTab = $state('tasks');
 
@@ -43,6 +49,7 @@
     let showCreateTask = $state(false);
     let showEditTask = $state(false);
     let showAddMember = $state(false);
+    let showDeleteTeam = $state(false);
     let editingTask = $state(null);
 
     const isTeamOwner = $derived(team && $userJwtContents && team.team_owner_id === $userJwtContents.user.userId);
@@ -78,6 +85,27 @@
             console.error(err);
         } finally {
             loading = false;
+        }
+    };
+
+    const loadReports = async () => {
+        if (!team || reportsLoading) return;
+        reportsLoading = true;
+        
+        try {
+            const reportsResult = await getTeamReports(teamId);
+            
+            if (!reportsResult || 'err' in reportsResult) {
+                reports = null;
+                return;
+            }
+            
+            reports = reportsResult.ok;
+
+        } catch (err) {
+            reports = null;
+        } finally {
+            reportsLoading = false;
         }
     };
 
@@ -135,6 +163,10 @@
         loadTeamBasicData();
     };
 
+    const handleTeamDeleted = () => {
+        goto('/teams')
+    };
+
     const handleFiltersChange = (newFilters) => {
         filters = { ...newFilters };
         pagination = { ...pagination, currentPage: 1 };
@@ -150,6 +182,7 @@
         pagination = { ...pagination, itemsPerPage: limit, currentPage: 1 };
         loadTasks();
     };
+    
     const openEditTask = (task) => {
         editingTask = task;
         showEditTask = true;
@@ -169,11 +202,13 @@
             
         }
     });
-
+    
     const handleTabChange = (newTab) => {
         activeTab = newTab;
         if (newTab === 'tasks' && team && !tasksLoading) {
             loadTasks();
+        } else if (newTab === 'reports' && team && !reportsLoading) {
+            loadReports();
         }
     };
 
@@ -205,6 +240,11 @@
     .owner-badge {
         color: #d4a574;
         font-size: 1.5rem;
+    }
+
+    .delete-team-btn {
+        font-size: 0.875rem;
+        white-space: nowrap;
     }
 
     .tabs {
@@ -248,6 +288,19 @@
         border-radius: 0.5rem;
         margin-bottom: 2rem;
     }
+
+    @media (max-width: 768px) {
+        .team-header {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .delete-team-btn {
+            align-self: center;
+            max-width: 200px;
+        }
+    }
 </style>
 
 <main>
@@ -269,13 +322,26 @@
                     </button>
                 </div>
             {:else if team}
+                <button class="btn btn-outline back-button" onclick={() => window.history.back()}>
+                    <ArrowLeft/>
+                    Back to Teams
+                </button>
                 <header class="team-header">
                     <div class="team-title">
-                        {`Team: ${team.team_name}!`}
+                        {`Team: ${team.team_name}`}
                         {#if isTeamOwner}
                             <span class="owner-badge" title="Team Owner">(Owned by you)</span>
                         {/if}
                     </div>
+                    {#if isTeamOwner}
+                        <button 
+                            class="btn btn-danger delete-team-btn" 
+                            onclick={() => showDeleteTeam = true}
+                            title="Delete team and all associated data"
+                        >
+                            Delete Team
+                        </button>
+                    {/if}
                 </header>
 
                 <nav class="tabs">
@@ -289,9 +355,16 @@
                     <button 
                         class="tab" 
                         class:active={activeTab === 'members'}
-                        onclick={() => activeTab = 'members'}
+                        onclick={() => handleTabChange('members')}
                     >
                         Members
+                    </button>
+                    <button 
+                        class="tab" 
+                        class:active={activeTab === 'reports'}
+                        onclick={() => handleTabChange('reports')}
+                    >
+                        Report
                     </button>
                 </nav>
 
@@ -314,9 +387,15 @@
                     <MembersTab 
                         {members} 
                         {isTeamOwner}
+                        {teamId}
+                        teamOwnerId={team.team_owner_id}
                         onAddMember={() => showAddMember = true}
                         onRemoveMember={handleMemberRemoved}
-                        teamId={teamId}
+                    />
+                {:else if activeTab === 'reports'}
+                    <ReportsTab 
+                        {reports}
+                        loading={reportsLoading}
                     />
                 {/if}
             {/if}
@@ -351,5 +430,15 @@
         existingMembers={members}
         close={() => showAddMember = false}
         onMemberAdded={handleMemberAdded}
+    />
+{/if}
+
+{#if showDeleteTeam && authState.isAuthorized && isTeamOwner && team}
+    <DeleteTeamModal 
+        {team}
+        memberCount={members.length}
+        taskCount={pagination.totalItems}
+        close={() => showDeleteTeam = false}
+        onTeamDeleted={handleTeamDeleted}
     />
 {/if}
