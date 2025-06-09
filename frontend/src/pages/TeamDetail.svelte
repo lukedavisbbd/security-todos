@@ -92,13 +92,15 @@
                         <h5 class="owner-badge" title="Team Owner">(Owned by you)</h5>
                     {/if}
                 </section>
-                <button 
-                    class="btn btn-danger delete-team-btn" 
-                    onclick={() => showDeleteTeam = true}
-                    title="Delete team and all associated data"
-                >
-                    Delete Team
-                </button>
+                {#if isTeamOwner}
+                    <button
+                        class="btn btn-danger delete-team-btn"
+                        onclick={() => showDeleteTeam = true}
+                        title="Delete team and all associated data"
+                    >
+                        Delete Team
+                    </button>
+                {/if}
             </header>
             <nav class="tabs">
                 <button 

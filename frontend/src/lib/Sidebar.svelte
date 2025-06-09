@@ -2,8 +2,8 @@
   import { fade, fly } from "svelte/transition";
   import ProfileLogo from "./ProfileLogo.svelte";
   import { userJwtContents } from "../util/stores";
-  import { Home, LogOut, UserLock, X } from "@lucide/svelte";
-  import { route } from "@mateothegreat/svelte5-router";
+  import { Home, LogOut, User, UserLock, X } from "@lucide/svelte";
+  import { goto, route } from "@mateothegreat/svelte5-router";
   import Spinner from "./Spinner.svelte";
   import { logout } from "../util/auth";
 
@@ -62,10 +62,10 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <aside transition:fly|global={{ duration: 150, x: 150 }} onclick={e => e.stopPropagation()}>
       <header>
-        <button class="profile-button">
-          <ProfileLogo/>
+        <a class="profile-button" href="/profile" onclick={() => showMenu = false} use:route>
+          <ProfileLogo email={$userJwtContents.user.email} name={$userJwtContents.user.name}/>
           {$userJwtContents.user.name}
-        </button>
+        </a>
         <button class="sidebar-close btn btn-small" onclick={() => showMenu = false} aria-label="close menu">
           <X class="full"/>
         </button>
@@ -74,6 +74,10 @@
         <a class="btn" href="/" onclick={() => showMenu = false} use:route>
           <Home/>
           Home
+        </a>
+        <a class="btn" href="/profile" onclick={() => showMenu = false} use:route>
+          <User/>
+          My Profile
         </a>
         {#if $userJwtContents.roles.some(role => role == 'access_admin') }
           <a class="btn" href="/access" onclick={() => showMenu = false} use:route>
@@ -87,7 +91,10 @@
             Logout
           </button>
         {:else}
-          <button class="btn" onclick={() => logoutPromise = logout().then(() => logoutPromise = null)}>
+          <button class="btn" onclick={() => logoutPromise = logout().then(() => {
+            logoutPromise = null;
+            goto('/');
+          })}>
             <LogOut/>
             Logout
           </button>
@@ -98,7 +105,10 @@
             Logout from All Devices
           </button>
         {:else}
-          <button class="btn" onclick={() => logoutPromise = logout(true).then(() => logoutPromise = null)}>
+          <button class="btn" onclick={() => logoutPromise = logout(true).then(() => {
+            logoutPromise = null;
+            goto('/');
+          })}>
             <LogOut/>
             Logout from All Devices
           </button>

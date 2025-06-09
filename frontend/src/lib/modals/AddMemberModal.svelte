@@ -5,7 +5,6 @@
     import ProfileLogo from "../ProfileLogo.svelte";
     import { searchUsers } from "../../util/access-control";
     import { addUserToTeam } from "../../util/team";
-    import { getUserInitials, gravatarUrl } from "../../util/stores";
 
     const tryClose = () => {
         if (!addingMember) {
@@ -180,8 +179,8 @@
                                 <div class="user-item">
                                     <div class="user-info">
                                         <ProfileLogo 
-                                            logoSrc={gravatarUrl(user.user.email)} 
-                                            initials={getUserInitials(user.user.name)}
+                                            email={user.user.email}
+                                            name={user.user.name}
                                         />
                                         <div class="user-details">
                                             <div class="user-name">{user.user.name}</div>

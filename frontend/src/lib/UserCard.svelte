@@ -1,6 +1,5 @@
 <script>
-  import { LogOut, Plus, X } from "@lucide/svelte";
-    import { getUserInitials, gravatarUrl } from "../util/stores";
+    import { LogOut, Plus, RotateCcwKey, X } from "@lucide/svelte";
     import ProfileLogo from "./ProfileLogo.svelte";
     import Spinner from "./Spinner.svelte";
     import { clickOutside } from "../util/click-outside";
@@ -12,6 +11,10 @@
     /** @type {Promise<void> | null} */
     let logoutPromise = $state(null);
     let logoutError = $state('');
+
+    /** @type {Promise<void> | null} */
+    let passwordPromise = $state(null);
+    let passwordError = $state('');
 
     let showAddMenu = $state(false);
 
@@ -109,7 +112,7 @@
 
 <article>
     <section class="profile">
-        <ProfileLogo logoSrc={gravatarUrl(user.user.email)} initials={getUserInitials(user.user.name)}/>
+        <ProfileLogo email={user.user.email} name={user.user.name}/>
         {user.user.name}
     </section>
     <section class="roles">
@@ -153,6 +156,18 @@
         {/if}
     </section>
     <section class="buttons">
+        <section>
+            <button class="btn btn-outline">
+                {#if passwordPromise}
+                    <div class="spinner-wrapper">
+                        <Spinner/>
+                    </div>
+                {:else}
+                    <RotateCcwKey/>
+                {/if}
+                Reset Password
+            </button>
+        </section>
         <section class="logout-button">
             <button class="btn btn-danger" onclick={() => {
                 logoutError = '';

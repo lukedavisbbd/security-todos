@@ -52,7 +52,7 @@
     {#if $userJwtContents}
       <button class="open-menu-button" onclick={() => showMenu = true} aria-label="open menu">
         <ChevronDown/>
-        <ProfileLogo/>
+        <ProfileLogo email={$userJwtContents.user.email} name={$userJwtContents.user.name}/>
       </button>
     {:else}
       <div class="login-btns">

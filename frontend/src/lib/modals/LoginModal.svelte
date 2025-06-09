@@ -3,9 +3,9 @@
     import { fade } from "svelte/transition";
     import Spinner from "../Spinner.svelte";
     import { LoginRequestSchema } from "common";
-    import { checkAuth, login } from "../../util/auth";
+    import { checkAuth, login, pwnedPasswordCount } from "../../util/auth";
     import { z } from "zod/v4";
-  import { ApiError } from "../../util/http";
+    import { ApiError } from "../../util/http";
 
     const tryClose = () => {
         if (!loginPromise) {
@@ -55,6 +55,8 @@
     let twoFactor = $state("");
 
     let enterTwoFactor = $state(false);
+
+    let pwnedPasswords = $derived(pwnedPasswordCount(password));
     
     /** @type {Promise<void> | null} */
     let loginPromise = $state(null);
@@ -154,6 +156,22 @@
                                 <p class="error">{loginErrors.properties.password.errors[0]}</p>
                             {/if}
                         </div>
+                        <!-- svelte-ignore block_empty -->
+                        {#await pwnedPasswords}
+                        {:then count}
+                            {#if count > 0}
+                                <p class="error password-warning">
+                                    This password is not secure! It has been detected in
+                                    {#if count == 1}
+                                        a data breach!
+                                    {:else}
+                                        {count} data breaches!
+                                    {/if}
+                                    <br>
+                                    Please change your password immediately!
+                                </p>
+                            {/if}
+                        {/await}
                     {/if}
                 </article>
                 <footer>

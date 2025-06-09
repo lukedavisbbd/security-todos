@@ -1,0 +1,140 @@
+<script>
+  import ProfileLogo from '../lib/ProfileLogo.svelte';
+  import { userJwtContents } from '../util/stores';
+  
+  let user = $userJwtContents?.user;
+  if (!user) throw new Error();
+</script>
+
+<main>
+  <header>
+    <ProfileLogo email={user.email} name={user.name}/>
+    <section>
+      <h3>{user.name}</h3>
+      <p>
+        {user.email}
+        {#if user.emailVerified}
+          <span class="verified">
+            (Verified)
+          </span>
+        {:else}
+          <span class="not-verified">
+            (Not Verified)
+          </span>
+        {/if}
+      </p>
+    </section>
+  </header>
+  <article>
+    <p class="profile-picture-source">Your profile picture is sourced from <a href="https://gravatar.com/" target="_blank">Gravatar</a>.</p>
+    <h5>Personal Details</h5>
+    <form onsubmit={e => e.preventDefault()}>
+      <section class="form-group">
+        <label for="name" class="inline">Name</label>
+        <input type="text" name="name" id="name" placeholder="" minlength="1" maxlength="64" required>
+      </section>
+      <section class="button-group">
+        <button class="btn btn-dark">Update Name</button>
+      </section>
+    </form>
+    <form onsubmit={e => e.preventDefault()}>
+      <section class="form-group">
+        <label for="email" class="inline">Email Address</label>
+        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required>
+      </section>
+      <section class="button-group">
+        <button class="btn btn-dark">Update Email</button>
+      </section>
+    </form>
+    <h5>Change Password</h5>
+    <form onsubmit={e => e.preventDefault()}>
+      <section class="form-group">
+        <label for="password" class="inline">Old Password</label>
+        <input type="password" name="password" id="password" placeholder="" min="1" maxlength="128" required>
+      </section>
+      <section class="form-group">
+        <label for="new-password" class="inline">New Password</label>
+        <input type="password" name="new-password" id="new-password" placeholder="" min="1" maxlength="128" required>
+      </section>
+      <section class="button-group">
+        <button class="btn btn-dark">Change Password</button>
+      </section>
+    </form>
+  </article>
+</main>
+
+<style>
+  main {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    h3 {
+      line-height: 1;
+    }
+
+    p {
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 0.25rem;
+      color: #333;
+
+      .verified {
+        color: limegreen;
+      }
+
+      .not-verified {
+        color: red;
+      }
+    }
+
+    :global(img) {
+      width: 4rem;
+      height: 4rem;
+    }
+  }
+
+  .profile-picture-source {
+    color: #666;
+  }
+
+  article {
+    margin: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    h5 {
+      margin: 0 0.1rem;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      
+      .form-group {
+        flex: calc(infinity);
+        min-width: 16rem;
+      }
+      
+      .button-group {
+        display: flex;
+        flex: 1;
+        min-width: 10rem;
+        justify-content: end;
+      }
+      
+      button {
+        width: 100%;
+        justify-content: center;
+        padding: 0.875rem;
+      }
+    }
+  }
+</style>

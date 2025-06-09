@@ -1,6 +1,5 @@
 <script>
     import { Crown, UserMinus } from "@lucide/svelte";
-    import { getUserInitials, gravatarUrl } from "../util/stores";
     import ProfileLogo from "./ProfileLogo.svelte";
     import ConfirmationModal from "./modals/ConfirmationModal.svelte";
     import { promoteToTeamLead, removeUserFromTeam } from "../util/team";
@@ -69,8 +68,8 @@
     <td>
         <div class="member-info">
             <ProfileLogo
-                logoSrc={gravatarUrl(member.email)} 
-                initials={getUserInitials(member.name)}
+                email={member.email}
+                name={member.name}
             />
             <div class="member-details">
                 <div class="member-name">{member.name}</div>
