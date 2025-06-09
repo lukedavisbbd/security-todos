@@ -92,3 +92,27 @@ export const PaginationInfoSchema = z.object({
 /**
  * @typedef {z.infer<typeof PaginationInfoSchema>} PaginationInfo
  */
+
+export const StatusSummarySchema = z.object({
+  statusId: z.int(),
+  statusName: z.string(),
+  taskCount: z.int(),
+});
+
+/**
+ * @typedef {z.infer<typeof StatusSummarySchema>} StatusSummary
+ */
+
+export const TeamMemberTaskSummarySchema = z.object({
+  userId: z.int(),
+  memberName: z.string(),
+  memberEmail: z.email(),
+  statusId: z.int(),
+  statusName: z.string(),
+  taskCount: z.int(),
+  avgDaysHeld: z.number(),
+});
+
+/**
+ * @typedef {z.infer<typeof TeamMemberTaskSummarySchema>} TeamMemberTaskSummary
+ */

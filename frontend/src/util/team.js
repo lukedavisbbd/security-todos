@@ -1,4 +1,4 @@
-import { TeamSchema, TeamWithStatsSchema, UserSchema } from "common";
+import { TeamReportsSchema, TeamSchema, TeamWithStatsSchema, UserSchema } from "common";
 import { apiFetch } from "./http";
 
 /**
@@ -63,5 +63,31 @@ export const removeUserFromTeam = async (teamId, userId) => {
  */
 export const getTeamById = async (teamId) => {
     const team = await apiFetch(`/teams/${teamId}`);
-    return TeamSchema.nullable().parse(team);
+    return TeamWithStatsSchema.nullable().parse(team);
+};
+
+/**
+ * Delete a team
+ * @param {number} teamId
+ */
+export const deleteTeam = async (teamId) => {
+    await apiFetch(`/teams/${teamId}`, 'DELETE');
+};
+
+/**
+ * Promote team member to team lead
+ * @param {number} teamId
+ * @param {number} userId
+ */
+export const promoteToTeamLead = async (teamId, userId) => {
+    await apiFetch(`/teams/${teamId}/promote/${userId}`, 'PUT');
+};
+
+/**
+ * Get team reports and analytics
+ * @param {number} teamId
+ */
+export const getTeamReports = async (teamId) => {
+    const reports = await apiFetch(`/teams/${teamId}/reports`);
+    return TeamReportsSchema.nullable().parse(reports);
 };

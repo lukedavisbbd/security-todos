@@ -5,7 +5,9 @@
     import MembersTab from "../lib/team-detail/MembersTab.svelte";
     import { userJwtContents } from "../util/stores";
     import { ArrowLeft } from "@lucide/svelte";
-    import { route as softRoute } from "@mateothegreat/svelte5-router";
+    import { goto, route as softRoute } from "@mateothegreat/svelte5-router";
+    import ReportsTab from "../lib/team-detail/ReportsTab.svelte";
+    import DeleteTeamModal from "../lib/modals/DeleteTeamModal.svelte";
 
     let { route } = $props();
     
@@ -14,16 +16,27 @@
     let teamPromise = $state(getTeamById(teamId));
     
     let activeTab = $state('tasks');
+
+    let showDeleteTeam = $state(false);
 </script>
 
 <style>
-    .team-title {
+    header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 1rem;
+
+        h3 {
+            display: inline-block;
+        }
     }
 
     .owner-badge {
+        display: inline-block;
         color: #d4a574;
-        font-size: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .tabs {
@@ -70,12 +83,23 @@
     {:then team}
         {#if team}
             {@const isTeamOwner = team.teamOwnerId === $userJwtContents?.user?.userId}
-            <h3 class="team-title">
-                {team.teamName}
-                {#if isTeamOwner}
-                    <span class="owner-badge" title="Team Owner">(Owned by you)</span>
-                {/if}
-            </h3>
+            <header>
+                <section>
+                    <h3>
+                        {team.teamName}
+                    </h3>
+                    {#if isTeamOwner}
+                        <h5 class="owner-badge" title="Team Owner">(Owned by you)</h5>
+                    {/if}
+                </section>
+                <button 
+                    class="btn btn-danger delete-team-btn" 
+                    onclick={() => showDeleteTeam = true}
+                    title="Delete team and all associated data"
+                >
+                    Delete Team
+                </button>
+            </header>
             <nav class="tabs">
                 <button 
                     class="tab" 
@@ -91,6 +115,13 @@
                 >
                     Members
                 </button>
+                <button 
+                    class="tab" 
+                    class:active={activeTab === 'reports'}
+                    onclick={() => activeTab = 'reports'}
+                >
+                    Reports
+                </button>
             </nav>
             {#if activeTab === 'tasks'}
                 <TasksTab
@@ -99,9 +130,26 @@
             {:else if activeTab === 'members'}
                 <MembersTab
                     {isTeamOwner}
+                    {team}
+                    refreshTeam={() => {
+                        teamPromise = getTeamById(teamId);
+                    }}
+                />
+            {:else if activeTab === 'reports'}
+                <ReportsTab
                     {teamId}
                 />
             {/if}
+            {#if showDeleteTeam}
+                <DeleteTeamModal
+                    {team}
+                    memberCount={team.memberCount}
+                    taskCount={team.taskCount}
+                    close={() => { showDeleteTeam = false }}
+                    onTeamDeleted={() => goto('/')}
+                />
+            {/if}
+
         {:else}
             <section class="error-wrapper">
                 <p>Team does not exist.</p>

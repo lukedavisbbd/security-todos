@@ -1,6 +1,6 @@
 <script>
   import { LogOut, Plus, X } from "@lucide/svelte";
-    import { gravatarUrl } from "../util/stores";
+    import { getUserInitials, gravatarUrl } from "../util/stores";
     import ProfileLogo from "./ProfileLogo.svelte";
     import Spinner from "./Spinner.svelte";
     import { clickOutside } from "../util/click-outside";
@@ -109,7 +109,7 @@
 
 <article>
     <section class="profile">
-        <ProfileLogo logoSrc={gravatarUrl(user.user.email)} initials={user.user.name.split(' ').map(name => name.substring(0, 1).toUpperCase()).join('')}/>
+        <ProfileLogo logoSrc={gravatarUrl(user.user.email)} initials={getUserInitials(user.user.name)}/>
         {user.user.name}
     </section>
     <section class="roles">

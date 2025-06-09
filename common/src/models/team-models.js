@@ -1,10 +1,11 @@
 import { z } from 'zod/v4';
+import { StatusSummarySchema, TeamMemberTaskSummarySchema } from './task-models.js';
 
 export const CreateTeamSchema = z.object({
   teamName: z
     .string({ error: 'Team name must be a string.' })
     .min(1, { message: 'Team name cannot be empty.' })
-    .max(64, { message: 'Team name must be at most 64 characters.' }),
+    .max(32, { message: 'Team name must be at most 32 characters.' }),
 });
 
 /**
@@ -31,14 +32,67 @@ export const TeamSchema = z.object({
  */
 
 // Team with statistics type
-export const TeamWithStatsSchema = z.object({
-  teamId: z.int(),
-  teamName: z.string(),
-  teamOwnerId: z.int(),
+export const TeamWithStatsSchema = TeamSchema.and(z.object({
   memberCount: z.int(),
   taskCount: z.int(),
-});
+}));
 
 /**
  * @typedef {z.infer<typeof TeamWithStatsSchema>} TeamWithStats
+ */
+
+export const TeamOverviewStatsSchema = z.object({
+  teamId: z.int(),
+  teamName: z.string(),
+  teamOwnerId: z.int(),
+  ownerName: z.string(),
+  totalMembers: z.int(),
+  totalTasks: z.int(),
+  completedTasks: z.int(),
+  activeTasks: z.int(),
+  unassignedTasks: z.int(),
+  completionPercentage: z.number(),
+});
+
+/**
+ * @typedef {z.infer<typeof TeamOverviewStatsSchema>} TeamOverviewStats
+ */
+
+export const TeamMemberOverallStatsSchema = z.object({
+  userId: z.int(),
+  memberName: z.string(),
+  memberEmail: z.email(),
+  totalTasks: z.int(),
+  completedTasks: z.int(),
+  activeTasks: z.int(),
+  avgDaysPerTask: z.number(),
+});
+
+/**
+ * @typedef {z.infer<typeof TeamMemberOverallStatsSchema>} TeamMemberOverallStats
+ */
+
+export const TeamRecentActivitySchema = z.object({
+  taskId: z.int(),
+  taskName: z.string(),
+  statusName: z.string(),
+  memberName: z.string().nullable(),
+  timestamp: z.coerce.date(),
+  daysAgo: z.number(),
+});
+
+/**
+ * @typedef {z.infer<typeof TeamRecentActivitySchema>} TeamRecentActivity
+ */
+
+export const TeamReportsSchema = z.object({
+  overview: TeamOverviewStatsSchema,
+  statusSummary: StatusSummarySchema.array(),
+  memberSummary: TeamMemberTaskSummarySchema.array(),
+  memberStats: TeamMemberOverallStatsSchema.array(),
+  recentActivity: TeamRecentActivitySchema.array(),
+});
+
+/**
+ * @typedef {z.infer<typeof TeamReportsSchema>} TeamReports
  */

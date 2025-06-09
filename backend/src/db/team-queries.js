@@ -1,4 +1,4 @@
-import { TeamSchema, TeamWithStatsSchema, UserSchema } from 'common';
+import { AppError, TeamSchema, TeamWithStatsSchema, UserSchema } from 'common';
 import { pool } from './pool.js';
 
 /**
@@ -7,21 +7,58 @@ import { pool } from './pool.js';
  * @param {string} teamName
  */
 export async function createTeam(ownerId, teamName) {
-    const result = await pool.query(
-        `INSERT INTO teams (team_name, team_owner_id)
-        VALUES ($1, $2)
-        RETURNING team_id, team_name, team_owner_id`,
-        [teamName, ownerId]
-    );
+    const client = await pool.connect();
 
-    const row = result.rows[0];
-    const team = {
-        teamId: row.team_id,
-        teamName: row.team_name,
-        teamOwnerId: row.team_owner_id,
-    };
+    try {
+        await client.query('BEGIN');
 
-    return TeamSchema.parse(team);
+        const numTeams = await client.query(
+            `SELECT COUNT(*) AS count FROM teams WHERE team_owner_id = $1`,
+            [ownerId],
+        );
+
+        const count = numTeams.rows[0]?.count ?? 0;
+
+        const maxTeams = 20;
+
+        if (count >= maxTeams) {
+            throw new AppError({
+                code: 'bad_request',
+                status: 400,
+                message: `You may not create more than ${maxTeams} teams`,
+                data: undefined,
+            });
+        }
+
+        const teamResult = await client.query(
+            `INSERT INTO teams (team_name, team_owner_id)
+            VALUES ($1, $2)
+            RETURNING team_id, team_name, team_owner_id`,
+            [teamName, ownerId]
+        );
+
+        const row = teamResult.rows[0];
+        const team = TeamSchema.parse({
+            teamId: row.team_id,
+            teamName: row.team_name,
+            teamOwnerId: row.team_owner_id,
+        });
+
+        await client.query(
+            `INSERT INTO user_teams (user_id, team_id)
+             VALUES ($1, $2)`,
+            [ownerId, team.teamId]
+        );
+
+        await client.query('COMMIT');
+
+        return TeamSchema.parse(team);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
 }
 
 /**
@@ -80,6 +117,24 @@ export async function getTeamsLedByUser(ownerId) {
  * @param {number} teamId
  */
 export async function addUserToTeam(userId, teamId) {
+    const countResult = await pool.query(
+        `SELECT COUNT(*)::int as member_count
+        FROM user_teams
+        WHERE team_id = $1`,
+        [teamId]
+    );
+
+    const currentMemberCount = parseInt(countResult.rows[0].member_count);
+
+    if (currentMemberCount >= 10) {
+        throw new AppError({
+            code: 'bad_request',
+            status: 400,
+            message: 'Team has reached maximum capacity of 10 members.',
+            data: undefined,
+        });
+    }
+
     await pool.query(
         `INSERT INTO user_teams (user_id, team_id)
         VALUES ($1, $2)
@@ -107,6 +162,15 @@ export async function removeUserFromTeam(userId, teamId) {
             [userId, teamId]
         );
         
+        if (await isTeamOwner(teamId, userId)) {
+            throw new AppError({
+                code: 'bad_request',
+                status: 400,
+                message: 'Cannot remove owner of team!',
+                data: undefined,
+            });
+        }
+
         await client.query(
             `DELETE FROM user_teams
             WHERE user_id = $1
@@ -174,8 +238,13 @@ export async function getUsersInTeam(teamId) {
  */
 export async function getTeamById(teamId) {
     const result = await pool.query(
-        `SELECT team_id, team_name, team_owner_id
-        FROM teams WHERE team_id = $1`,
+        `SELECT
+            t.team_id,
+            t.team_name,
+            t.team_owner_id,
+            (SELECT COUNT(*)::int AS member_count FROM user_teams WHERE user_teams.team_id = t.team_id),
+            (SELECT COUNT(*)::int AS task_count FROM tasks WHERE tasks.team_id = t.team_id)
+        FROM teams AS t WHERE team_id = $1`,
         [teamId]
     );
 
@@ -184,9 +253,11 @@ export async function getTeamById(teamId) {
         teamId: row.team_id,
         teamName: row.team_name,
         teamOwnerId: row.team_owner_id,
+        memberCount: row.member_count,
+        taskCount: row.task_count,
     } : null;
 
-    return TeamSchema.nullable().parse(team);
+    return TeamWithStatsSchema.nullable().parse(team);
 }
 
 /**
@@ -202,4 +273,50 @@ export async function isTeamOwner(teamId, userId) {
         [teamId, userId]
     );
     return result.rows.length > 0;
+}
+
+/**
+ * Promote a team member to team lead (transfer ownership).
+ * @param {number} teamId
+ * @param {number} newOwnerId
+ */
+export async function promoteToTeamLead(teamId, newOwnerId) {
+    const memberCheck = await pool.query(
+        `SELECT 1 FROM user_teams WHERE team_id = $1 AND user_id = $2`,
+        [teamId, newOwnerId]
+    );
+
+    if (memberCheck.rows.length === 0) {
+        throw new AppError({
+            code: 'bad_request',
+            status: 400,
+            message: 'New owner is not a member of this team.',
+            data: undefined,
+        });
+    }
+
+    const updateResult = await pool.query(
+        `UPDATE teams
+        SET team_owner_id = $1
+        WHERE team_id = $2`,
+        [newOwnerId, teamId]
+    );
+
+    if (updateResult.rowCount === 0) {
+        throw new Error('Failed to update team ownership');
+    }
+}
+
+/**
+ * Delete a team and all associated data (cascades handle tasks, history, user_teams).
+ * @param {number} teamId
+ * @returns {Promise<boolean>}
+ */
+export async function deleteTeam(teamId) {
+    const result = await pool.query(
+        `DELETE FROM teams WHERE team_id = $1`,
+        [teamId]
+    );
+
+    return (result.rowCount ?? 0) > 0;
 }

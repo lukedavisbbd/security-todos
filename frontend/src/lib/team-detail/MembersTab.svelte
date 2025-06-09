@@ -1,19 +1,19 @@
 <script>
-    import { Plus, UserMinus } from "@lucide/svelte";
+    import { Plus } from "@lucide/svelte";
     import { getTeamMembers, removeUserFromTeam } from "../../util/team";
-    import ProfileLogo from "../ProfileLogo.svelte";
-    import { gravatarUrl } from "../../util/stores";
     import AddMemberModal from "../modals/AddMemberModal.svelte";
     import Spinner from "../Spinner.svelte";
     import ErrorTryAgain from "../ErrorTryAgain.svelte";
+    import TeamMemberRow from "../TeamMemberRow.svelte";
 
     /** @type {{ 
-     *   isTeamOwner: boolean,
-     *   teamId: number,
+     *     team: import('common').Team,
+     *     isTeamOwner: boolean,
+     *     refreshTeam: (() => void) | (() => Promise<void>),
      * }} */
-    let { isTeamOwner, teamId } = $props();
+    let { team, isTeamOwner, refreshTeam } = $props();
 
-    let membersPromise = $state(getTeamMembers(teamId));
+    let membersPromise = $state(getTeamMembers(team.teamId));
 
     /**
      * Remove a member from the team
@@ -24,16 +24,8 @@
             return;
         }
 
-        await removeUserFromTeam(teamId, member.userId);
-        membersPromise = getTeamMembers(teamId);
-    };
-
-    /**
-     * Get user initials for profile logo
-     * @param {string} name
-     */
-    const getUserInitials = (name) => {
-        return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
+        await removeUserFromTeam(team.teamId, member.userId);
+        membersPromise = getTeamMembers(team.teamId);
     };
 
     let showAddMember = $state(false);
@@ -79,13 +71,13 @@
             }
         }
 
-        td {
+        :global(td) {
             padding: 1rem;
             border-bottom: 1px solid #0001;
             vertical-align: middle;
         }
 
-        tr {
+        :global(tr) {
             &:last-child td {
                 border-bottom: none;
             }
@@ -94,39 +86,6 @@
                 background-color: #f8f8f8;
             }
         }
-    }
-
-    .member-info {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .member-details {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        min-width: 0;
-        flex: 1;
-    }
-
-    .member-name {
-        font-weight: 500;
-        color: #333;
-        word-wrap: break-word;
-    }
-
-    .member-email {
-        color: #666;
-        font-size: 0.875rem;
-        word-wrap: break-word;
-    }
-
-    .actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-        min-width: 80px;
     }
 
     .empty-state {
@@ -144,21 +103,13 @@
         table {
             font-size: 0.875rem;
         
-            th, td {
+            th, :global(td) {
                 padding: 0.75rem 0.5rem;
             }
 
             th:last-child {
                 width: 80px;
             }
-        }
-
-        .member-info {
-            gap: 0.5rem;
-        }
-
-        .actions {
-            min-width: 60px;
         }
     }
 </style>
@@ -195,45 +146,25 @@
             </thead>
             <tbody>
                 {#each members as member (member.userId)}
-                    <tr>
-                        <td>
-                            <div class="member-info">
-                                <ProfileLogo 
-                                    logoSrc={gravatarUrl(member.email)} 
-                                    initials={getUserInitials(member.name)}
-                                />
-                                <div class="member-details">
-                                    <div class="member-name">{member.name}</div>
-                                    <div class="member-email">{member.email}</div>
-                                </div>
-                            </div>
-                        </td>
-                        {#if isTeamOwner}
-                            <td>
-                                <div class="actions">
-                                    <button 
-                                        class="btn btn-small btn-danger" 
-                                        onclick={() => handleRemoveMember(member)}
-                                        title="Remove from team"
-                                    >
-                                        <UserMinus/>
-                                    </button>
-                                </div>
-                            </td>
-                        {/if}
-                    </tr>
+                    <TeamMemberRow
+                        {member}
+                        {isTeamOwner}
+                        {team}
+                        {refreshTeam}
+                        refreshMembers={() => membersPromise = getTeamMembers(team.teamId)}
+                    />
                 {/each}
             </tbody>
         </table>
     {/if}
     {#if isTeamOwner && showAddMember}
         <AddMemberModal
-            {teamId}
+            teamId={team.teamId}
             existingMembers={members}
             close={() => showAddMember = false}
-            onMemberAdded={() => membersPromise = getTeamMembers(teamId)}
+            onMemberAdded={() => membersPromise = getTeamMembers(team.teamId)}
         />
     {/if}
 {:catch error}
-    <ErrorTryAgain {error} onTryAgain={() => membersPromise = getTeamMembers(teamId)}/>
+    <ErrorTryAgain {error} onTryAgain={() => membersPromise = getTeamMembers(team.teamId)}/>
 {/await}

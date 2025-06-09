@@ -16,43 +16,13 @@ import {
     deleteTask,
     getTaskHistory
 } from '../db/task-queries.js';
-import { getTeamsForUser, isTeamOwner, getTeamById } from '../db/team-queries.js';
 import { authenticated } from '../middleware/auth-middleware.js';
 import { validate } from '../utils/validation.js';
 import z from 'zod/v4';
 import { TaskSearchQuerySchema } from '../models/queries.js';
+import { assertTeamAccess, assertTeamOwner } from './team-routes.js';
 
 const router = Router();
-
-/**
- * Check if user has access to team (is owner or member)
- * @param {number} teamId
- * @param {number} userId
- */
-async function assertTeamAccess(teamId, userId) {
-    /**
-     * @param {number} teamId
-     * @param {number} userId
-     */
-    const hasAccess = async (teamId, userId) => {
-        const team = await getTeamById(teamId);
-        if (!team) return false;
-        
-        if (team.teamOwnerId === userId) return true;
-        
-        const userTeams = await getTeamsForUser(userId);
-        return userTeams.some(t => t.teamId === teamId);
-    };
-
-    if (!hasAccess(teamId, userId)) {
-        throw new AppError({
-            code: 'missing_role',
-            status: 403,
-            message: 'Not authorised to access team.',
-            data: undefined,
-        });
-    }
-}
 
 /**
  * Get tasks for a team with filtering and pagination
@@ -231,15 +201,7 @@ router.delete('/tasks/:id', authenticated, async (req, res) => {
         });
     }
 
-    const isOwner = await isTeamOwner(task.teamId, currentUserId);
-    if (!isOwner) {
-        throw new AppError({
-            code: 'missing_role',
-            status: 403,
-            message: 'Only team owners can delete tasks',
-            data: undefined,
-        });
-    }
+    await assertTeamOwner(task.teamId, currentUserId);
 
     await deleteTask(taskId);
     res.json({ message: 'Task deleted' });

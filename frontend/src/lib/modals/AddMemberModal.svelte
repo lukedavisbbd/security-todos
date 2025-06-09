@@ -5,7 +5,7 @@
     import ProfileLogo from "../ProfileLogo.svelte";
     import { searchUsers } from "../../util/access-control";
     import { addUserToTeam } from "../../util/team";
-    import { gravatarUrl } from "../../util/stores";
+    import { getUserInitials, gravatarUrl } from "../../util/stores";
 
     const tryClose = () => {
         if (!addingMember) {
@@ -49,14 +49,6 @@
         }
         
         addingMember = null;
-    };
-
-    /**
-     * Get user initials for profile logo
-     * @param {string} name
-     */
-    const getUserInitials = (name) => {
-        return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
     };
 
     /**

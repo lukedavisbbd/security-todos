@@ -196,9 +196,7 @@ small {
   align-items: center;
 
   dialog {
-    position: absolute;
     border: none;
-
     background-color: #fafafa;
     box-shadow: 0 0.5rem 0.5rem #0001;
     position: absolute;

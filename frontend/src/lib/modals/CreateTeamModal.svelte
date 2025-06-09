@@ -5,7 +5,7 @@
     import { CreateTeamSchema } from "common";
     import { createTeam } from "../../util/team";
     import { z } from "zod/v4";
-  import { ApiError } from "../../util/http";
+    import { ApiError } from "../../util/http";
 
     const tryClose = () => {
         if (!createPromise) {
@@ -36,7 +36,7 @@
                 );
             } else {
                 createErrors = {
-                    errors: ['Failed to create team.'],
+                    errors: [err?.message || 'Failed to create team.'],
                 };
             }
         }
@@ -96,7 +96,7 @@
                         <input
                             bind:value={teamName} type="text" name="team-name" id="team-name"
                             placeholder="" autocomplete="organization"
-                            required maxlength="64"
+                            required maxlength="32"
                         >
                         {#if createErrors?.properties?.teamName?.errors?.at(0)}
                             <p class="error">{createErrors.properties.teamName.errors[0]}</p>

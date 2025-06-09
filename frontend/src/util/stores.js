@@ -33,4 +33,12 @@ export const gravatarUrl = async (email) => {
     }
 };
 
+/**
+ * Get user initials for profile logo
+ * @param {string} name
+ */
+export const getUserInitials = (name) => {
+    return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
+};
+
 export const userProfileLogoSrc = derived(userJwtContents, ($userJwtContents) => gravatarUrl($userJwtContents?.user.email ?? ''));
