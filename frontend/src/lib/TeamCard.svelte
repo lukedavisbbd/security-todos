@@ -1,6 +1,7 @@
 <script>
     import { Crown, Users, CheckSquare, ArrowRight } from "@lucide/svelte";
     import { route } from "@mateothegreat/svelte5-router";
+  import { userJwtContents } from "../util/stores";
 
     /** @type {{ team: import('common').TeamWithStats }} */
     let { team } = $props();
@@ -61,8 +62,8 @@
 <article class="team-card">
     <header class="team-header">
         <div class="team-title">
-            {team.team_name}
-            {#if team.is_owner}
+            {team.teamName}
+            {#if team.teamOwnerId === $userJwtContents?.user.userId}
                 <Crown class="owner-badge"/>
             {/if}
         </div>
@@ -71,16 +72,16 @@
     <section class="team-stats">
         <div class="stat">
             <Users/>
-            <span>{team.member_count} member{team.member_count !== 1 ? 's' : ''}</span>
+            <span>{team.memberCount} member{team.memberCount !== 1 ? 's' : ''}</span>
         </div>
         <div class="stat">
             <CheckSquare/>
-            <span>{team.task_count} task{team.task_count !== 1 ? 's' : ''}</span>
+            <span>{team.taskCount} task{team.taskCount !== 1 ? 's' : ''}</span>
         </div>
     </section>
     
     <footer class="team-actions">
-        <a class="btn btn-outline" href="/team/{team.team_id}" use:route>
+        <a class="btn btn-outline" href="/team/{team.teamId}" use:route>
             View Team
             <ArrowRight/>
         </a>

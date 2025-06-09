@@ -1,43 +1,34 @@
 <script>
-    import { Plus, UserMinus } from "@lucide/svelte";
-    import { removeUserFromTeam } from "../../util/team";
-    import ProfileLogo from "../ProfileLogo.svelte";
-    import { gravatarUrl } from "../../util/stores";
+    import { Plus } from "@lucide/svelte";
+    import { getTeamMembers, removeUserFromTeam } from "../../util/team";
+    import AddMemberModal from "../modals/AddMemberModal.svelte";
+    import Spinner from "../Spinner.svelte";
+    import ErrorTryAgain from "../ErrorTryAgain.svelte";
+    import TeamMemberRow from "../TeamMemberRow.svelte";
 
     /** @type {{ 
-     *   members: import('common').TeamMember[], 
-     *   isTeamOwner: boolean,
-     *   teamId: number,
-     *   onAddMember: () => void,
-     *   onRemoveMember: () => void
+     *     team: import('common').Team,
+     *     isTeamOwner: boolean,
+     *     refreshTeam: (() => void) | (() => Promise<void>),
      * }} */
-    let { members, isTeamOwner, teamId, onAddMember, onRemoveMember } = $props();
+    let { team, isTeamOwner, refreshTeam } = $props();
+
+    let membersPromise = $state(getTeamMembers(team.teamId));
 
     /**
      * Remove a member from the team
-     * @param {import('common').TeamMember} member
+     * @param {import('common').User} member
      */
     const handleRemoveMember = async (member) => {
         if (!confirm(`Are you sure you want to remove ${member.name} from this team?`)) {
             return;
         }
 
-        const result = await removeUserFromTeam(teamId, member.user_id);
-        if (result && 'ok' in result) {
-            onRemoveMember();
-        } else {
-            alert('Failed to remove member from team.');
-        }
+        await removeUserFromTeam(team.teamId, member.userId);
+        membersPromise = getTeamMembers(team.teamId);
     };
 
-    /**
-     * Get user initials for profile logo
-     * @param {string} name
-     * @returns {string}
-     */
-    const getUserInitials = (name) => {
-        return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
-    };
+    let showAddMember = $state(false);
 </script>
 
 <style>
@@ -55,77 +46,46 @@
         margin: 0;
     }
 
-    .members-table {
+    table {
         width: 100%;
         border-collapse: collapse;
-        border: 1px solid #0003;
         border-radius: 0.5rem;
+        box-shadow: 0 0.15rem 0.15rem #0001;
         overflow: hidden;
         background-color: #fafafa;
-    }
 
-    .members-table th {
-        background-color: #f0f0f0;
-        padding: 1rem;
-        text-align: left;
-        font-weight: 500;
-        border-bottom: 1px solid #0003;
-    }
+        th {
+            background-color: #f0f0f0;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+            border-bottom: 1px solid #0003;
 
-    .members-table th:first-child {
-        width: 100%;
-    }
+            &:first-child {
+                width: 100%;
+            }
 
-    .members-table th:last-child {
-        width: 120px;
-        text-align: center;
-    }
+            &:last-child {
+                width: 120px;
+                text-align: center;
+            }
+        }
 
-    .members-table td {
-        padding: 1rem;
-        border-bottom: 1px solid #0001;
-        vertical-align: middle;
-    }
+        :global(td) {
+            padding: 1rem;
+            border-bottom: 1px solid #0001;
+            vertical-align: middle;
+        }
 
-    .members-table tr:last-child td {
-        border-bottom: none;
-    }
+        :global(tr) {
+            &:last-child td {
+                border-bottom: none;
+            }
 
-    .members-table tr:hover {
-        background-color: #f8f8f8;
-    }
-
-    .member-info {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .member-details {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        min-width: 0;
-        flex: 1;
-    }
-
-    .member-name {
-        font-weight: 500;
-        color: #333;
-        word-wrap: break-word;
-    }
-
-    .member-email {
-        color: #666;
-        font-size: 0.875rem;
-        word-wrap: break-word;
-    }
-
-    .actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-        min-width: 80px;
+            &:hover {
+                background-color: #f8f8f8;
+            }
+        }
     }
 
     .empty-state {
@@ -139,35 +99,30 @@
         color: #333;
     }
 
-    @media (max-width: 768px) {
-        .members-table {
+    @media (max-width: 48rem) {
+        table {
             font-size: 0.875rem;
-        }
         
-        .members-table th,
-        .members-table td {
-            padding: 0.75rem 0.5rem;
-        }
+            th, :global(td) {
+                padding: 0.75rem 0.5rem;
+            }
 
-        .member-info {
-            gap: 0.5rem;
-        }
-
-        .actions {
-            min-width: 60px;
-        }
-
-        .members-table th:last-child {
-            width: 80px;
+            th:last-child {
+                width: 80px;
+            }
         }
     }
 </style>
 
-<section>
+{#await membersPromise}
+    <section class="loading-wrapper">
+        <Spinner/>
+    </section>
+{:then members}
     <header class="members-header">
         <h2 class="section-title">Members ({members.length})</h2>
         {#if isTeamOwner}
-            <button class="btn btn-primary" onclick={onAddMember}>
+            <button class="btn btn-primary" onclick={() => showAddMember = true}>
                 <Plus/>
                 Add Member
             </button>
@@ -180,7 +135,7 @@
             <p>Add members to your team to start collaborating.</p>
         </div>
     {:else}
-        <table class="members-table">
+        <table>
             <thead>
                 <tr>
                     <th>Member</th>
@@ -190,36 +145,26 @@
                 </tr>
             </thead>
             <tbody>
-                {#each members as member (member.user_id)}
-                    <tr>
-                        <td>
-                            <div class="member-info">
-                                <ProfileLogo 
-                                    logoSrc={gravatarUrl(member.email)} 
-                                    initials={getUserInitials(member.name)}
-                                />
-                                <div class="member-details">
-                                    <div class="member-name">{member.name}</div>
-                                    <div class="member-email">{member.email}</div>
-                                </div>
-                            </div>
-                        </td>
-                        {#if isTeamOwner}
-                            <td>
-                                <div class="actions">
-                                    <button 
-                                        class="btn btn-small btn-danger" 
-                                        onclick={() => handleRemoveMember(member)}
-                                        title="Remove from team"
-                                    >
-                                        <UserMinus/>
-                                    </button>
-                                </div>
-                            </td>
-                        {/if}
-                    </tr>
+                {#each members as member (member.userId)}
+                    <TeamMemberRow
+                        {member}
+                        {isTeamOwner}
+                        {team}
+                        {refreshTeam}
+                        refreshMembers={() => membersPromise = getTeamMembers(team.teamId)}
+                    />
                 {/each}
             </tbody>
         </table>
     {/if}
-</section>
+    {#if isTeamOwner && showAddMember}
+        <AddMemberModal
+            teamId={team.teamId}
+            existingMembers={members}
+            close={() => showAddMember = false}
+            onMemberAdded={() => membersPromise = getTeamMembers(team.teamId)}
+        />
+    {/if}
+{:catch error}
+    <ErrorTryAgain {error} onTryAgain={() => membersPromise = getTeamMembers(team.teamId)}/>
+{/await}

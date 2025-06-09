@@ -5,14 +5,9 @@
     import { UpdateTaskDetailsSchema } from "common";
     import { updateTaskDetails } from "../../util/tasks";
     import { z } from "zod/v4";
+    import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!updatePromise) {
             close();
         }
@@ -22,7 +17,7 @@
         updateErrors = null;
         
         // Check if anything actually changed
-        if (taskName === task.task_name && taskContent === (task.task_content || '')) {
+        if (taskName === task.taskName && taskContent === (task.taskContent || '')) {
             close();
             return;
         }
@@ -37,34 +32,33 @@
             return;
         }
 
-        const result = await updateTaskDetails(task.task_id, request.data.name, request.data.content);
-
-        if (!result) {
-            updateErrors = {
-                errors: ['Failed to update task.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
+        try {
+            await updateTaskDetails(task.taskId, request.data.name, request.data.content);
             onTaskUpdated();
-        } else {
-            updateErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
-                result.err.data
-            );
+            close();
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                updateErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
+                    err.errorResponse.data
+                );
+            } else {
+                updateErrors = {
+                    errors: ['Failed to update task.']
+                };
+            }
         }
     };
 
     /** @type {{ 
-     *   task: import('common').TaskWithAssignee,
+     *   task: import('common').Task,
      *   close: () => void, 
      *   onTaskUpdated: () => void 
      * }} */
     let { task, close, onTaskUpdated } = $props();
 
     // Initialize form values from task
-    let taskName = $state(task.task_name);
-    let taskContent = $state(task.task_content || '');
+    let taskName = $state(task.taskName);
+    let taskContent = $state(task.taskContent || '');
     
     /** @type {Promise<void> | null} */
     let updatePromise = $state(null);
@@ -97,7 +91,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if updatePromise}
             <article>

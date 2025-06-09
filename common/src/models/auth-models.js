@@ -23,9 +23,17 @@ export const LoginRequestSchema = z.object({
 
 export const RegisterRequestSchema = z.object({
     email: z.preprocess(trimUnknown, z.email().max(128, { error: 'Email is too long.' })),
-    // https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#implement-proper-password-strength-controls
-    // OWasp: password must have a minimum length at least 12 and a maximum length no less than 64 to allow passphrases
-    // We've allowed up to 128, as extremely large passwords can causing a hashing DOS. (https://www.acunetix.com/vulnerabilities/web/long-password-denial-of-service/)
+    // https://pages.nist.gov/800-63-3/sp800-63b.html
+    // NIST Digital Identity Guidelines Section 5.1.1.2
+    // Recommends: 
+    // * minimum length at least 8 (we've chosen 12)
+    // * max length at least 64, we've allowed up to 128,
+    //   as extremely large passwords can causing a hashing DOS. (https://www.acunetix.com/vulnerabilities/web/long-password-denial-of-service/)
+    // * checking passwords against known data breaches (we're using pwned passwords list)
+    // * having show password button
+    // Recommends against:
+    // * periodic password rotation
+    // * arbitrary composition rules (e.g., requiring mixtures of different character types or prohibiting consecutively repeated characters)
     password: z.preprocess(trimUnknown,
         z.string()
         .min(12, { error: 'Password must be at least 12 characters long.' })

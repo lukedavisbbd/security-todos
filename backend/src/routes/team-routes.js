@@ -1,30 +1,65 @@
 import { Router } from 'express';
 import { AppError, CreateTeamSchema, AddUserToTeamSchema } from 'common';
-
 import {
-  createTeam,
-  getTeamsWithStats,
-  getTeamsForUser,
-  addUserToTeam,
-  removeUserFromTeam,
-  getUsersInTeam,
-  getTeamById,
-  isTeamOwner
+  createTeam, getTeamsWithStats, getTeamsForUser, addUserToTeam,
+  removeUserFromTeam, getUsersInTeam, getTeamById, isTeamOwner,
+  promoteToTeamLead,
+  deleteTeam
 } from '../db/team-queries.js';
-
 import { authenticated } from '../middleware/auth-middleware.js';
+import { validate } from '../utils/validation.js';
+import z from 'zod/v4';
+import { getTeamReports } from '../db/report-queries.js';
+
+/**
+ * @param {number} teamId
+ * @param {number} userId
+ */
+export async function assertTeamAccess(teamId, userId) {
+  /**
+   * @param {number} teamId
+   * @param {number} userId
+   */
+  const userTeams = await getTeamsForUser(userId);
+  const hasAccess = userTeams.some(t => t.teamId === teamId);
+
+  if (!hasAccess) {
+    throw new AppError({
+      code: 'missing_role',
+      status: 403,
+      message: 'Not authorised to access team.',
+      data: undefined,
+    });
+  }
+}
+
+/**
+ * @param {number} teamId
+ * @param {number} userId
+ */
+export async function assertTeamOwner(teamId, userId) {
+  const isOwner = await isTeamOwner(teamId, userId);
+  if (!isOwner) {
+    throw new AppError({
+      code: 'missing_role',
+      status: 403,
+      message: 'Not authorised to access team.',
+      data: undefined,
+    });
+  }
+}
 
 const router = Router();
 
 /**
  * Create a new team
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
  */
-router.post('/', authenticated, async (req, res) => {
-  const { teamName } = CreateTeamSchema.parse(req.body);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const ownerId = req.jwtContents.user.userId;
+router.post('/teams', authenticated, async (req, res) => {
+  const { teamName } = validate(CreateTeamSchema, req.body);
+  
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const ownerId = authenticatedReq.jwtContents.user.userId;
   
   const newTeam = await createTeam(ownerId, teamName.trim());
   res.status(201).json(newTeam);
@@ -32,97 +67,54 @@ router.post('/', authenticated, async (req, res) => {
 
 /**
  * Get teams overview with stats for current user
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
  */
-router.get('/overview', authenticated, async (req, res) => {
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const userId = req.jwtContents.user.userId;
+router.get('/teams/overview', authenticated, async (req, res) => {
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const userId = authenticatedReq.jwtContents.user.userId;
   const teams = await getTeamsWithStats(userId);
   res.json(teams);
 });
 
 /**
  * Get teams user is a member of
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
  */
-router.get('/member', authenticated, async (req, res) => {
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const userId = req.jwtContents.user.userId;
+router.get('/teams/member', authenticated, async (req, res) => {
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const userId = authenticatedReq.jwtContents.user.userId;
   const teams = await getTeamsForUser(userId);
   res.json(teams);
 });
 
 /**
  * Add user to team (only team owner can do this)
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
  */
-router.post('/:teamId/users', authenticated, async (req, res) => {
-  const teamId = Number(req.params.teamId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
+router.post('/teams/:teamId/users', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
   
-  if (isNaN(teamId)) {
-    throw new AppError({
-      code: 'validation_error',
-      status: 400,
-      message: 'Validation Error',
-      data: {
-          errors: ['Invalid team ID']
-      },
-    });
-  }
+  const { userId } = validate(AddUserToTeamSchema, req.body);
 
-  // Check if current user is team owner
-  const isOwner = await isTeamOwner(teamId, currentUserId);
-  if (!isOwner) {
-    throw new AppError({
-      code: 'missing_role',
-      status: 403,
-      message: 'Only team owners can add members',
-      data: undefined,
-    });
-  }
+  await assertTeamOwner(teamId, currentUserId);
 
-  const { userId } = AddUserToTeamSchema.parse(req.body);
   await addUserToTeam(userId, teamId);
   res.status(204).send();
 });
 
 /**
  * Remove user from team (only team owner can do this)
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
  */
-router.delete('/:teamId/users/:userId', authenticated, async (req, res) => {
-  const teamId = Number(req.params.teamId);
-  const userIdToRemove = Number(req.params.userId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
-  
-  if (isNaN(teamId) || isNaN(userIdToRemove)) {
-    throw new AppError({
-      code: 'validation_error',
-      status: 400,
-      message: 'Validation Error',
-      data: {
-          errors: ['Invalid team ID or user ID']
-      },
-    });
-  }
+router.delete('/teams/:teamId/users/:userId', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  const userIdToRemove = validate(z.coerce.number().int(), req.params.userId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
 
-  // Check if current user is team owner
-  const isOwner = await isTeamOwner(teamId, currentUserId);
-  if (!isOwner) {
-    throw new AppError({
-      code: 'missing_role',
-      status: 403,
-      message: 'Only team owners can remove members',
-      data: undefined,
-    });
-  }
+  await assertTeamOwner(teamId, currentUserId);
 
   await removeUserFromTeam(userIdToRemove, teamId);
   res.status(204).send();
@@ -130,73 +122,27 @@ router.delete('/:teamId/users/:userId', authenticated, async (req, res) => {
 
 /**
  * Get team members
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
  */
-router.get('/:teamId/users', authenticated, async (req, res) => {
-  const teamId = Number(req.params.teamId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
-  
-  if (isNaN(teamId)) {
-    throw new AppError({
-      code: 'validation_error',
-      status: 400,
-      message: 'Validation Error',
-      data: {
-          errors: ['Invalid team ID']
-      },
-    });
-  }
+router.get('/teams/:teamId/users', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
 
-  // Check if current user is team member or owner
-  const team = await getTeamById(teamId);
-  if (!team) {
-    throw new AppError({
-      code: 'not_found',
-      status: 404,
-      message: 'Team not found',
-      data: undefined,
-    });
-  }
-
-  const userTeams = await getTeamsForUser(currentUserId);
-  const isMember = userTeams.some(t => t.team_id === teamId) || team.team_owner_id === currentUserId;
-  
-  if (!isMember) {
-    throw new AppError({
-      code: 'missing_role',
-      status: 403,
-      message: 'Not authorized to view team members',
-      data: undefined,
-    });
-  }
+  await assertTeamAccess(teamId, currentUserId);
 
   const members = await getUsersInTeam(teamId);
   res.json(members);
 });
 
-/**
- * Get specific team details
- * @param {import('../index.js').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
- */
-router.get('/:teamId', authenticated, async (req, res) => {
-  const teamId = Number(req.params.teamId);
-  // @ts-ignore - jwtContents is added by authenticated middleware
-  const currentUserId = req.jwtContents.user.userId;
-  
-  if (isNaN(teamId)) {
-    throw new AppError({
-      code: 'validation_error',
-      status: 400,
-      message: 'Validation Error',
-      data: {
-          errors: ['Invalid team ID']
-      },
-    });
-  }
+router.get('/teams/:teamId', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
 
+  await assertTeamAccess(teamId, currentUserId);
+  
   const team = await getTeamById(teamId);
   if (!team) {
     throw new AppError({
@@ -207,20 +153,64 @@ router.get('/:teamId', authenticated, async (req, res) => {
     });
   }
 
-  // Check if current user is team member or owner
-  const userTeams = await getTeamsForUser(currentUserId);
-  const isMember = userTeams.some(t => t.team_id === teamId) || team.team_owner_id === currentUserId;
-  
-  if (!isMember) {
+  res.json(team);
+});
+
+/**
+ * Get report for team
+ */
+router.get('/teams/:teamId/reports', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
+
+  await assertTeamAccess(teamId, currentUserId);
+
+  const report = await getTeamReports(teamId);
+
+  res.json(report)
+})
+
+/*
+ * Promote team member to team lead (only current team owner can do this)
+ */
+router.put('/teams/:teamId/promote/:userId', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  const newOwnerId = validate(z.coerce.number().int(), req.params.userId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
+
+  await isTeamOwner(teamId, currentUserId);
+
+  await promoteToTeamLead(teamId, newOwnerId);
+
+  res.status(204).send();
+});
+
+/**
+ * Delete team (only team owner can do this)
+ */
+router.delete('/teams/:teamId', authenticated, async (req, res) => {
+  const teamId = validate(z.coerce.number().int(), req.params.teamId);
+  // assert that authentication middleware has included jwtContents
+  const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
+  const currentUserId = authenticatedReq.jwtContents.user.userId;
+
+  await assertTeamOwner(teamId, currentUserId);
+
+  const deleted = await deleteTeam(teamId);
+  if (deleted) {
+    res.status(204).send();
+  } else {
     throw new AppError({
-      code: 'missing_role',
-      status: 403,
-      message: 'Not authorized to view this team',
+      code: 'not_found',
+      status: 404,
+      message: 'Team not found or you are not the owner',
       data: undefined,
     });
   }
-
-  res.json(team);
 });
 
 export default router;

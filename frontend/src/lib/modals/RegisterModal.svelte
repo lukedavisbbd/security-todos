@@ -1,19 +1,14 @@
 <script>
-    import { X } from "@lucide/svelte";
+    import { Eye, EyeOff, X } from "@lucide/svelte";
     import { fade } from "svelte/transition";
     import qrcode from 'qrcode';
     import Spinner from "../Spinner.svelte";
     import { LoginRequestSchema, RegisterRequestSchema } from "common";
-    import { login, register } from "../../util/auth";
+    import { checkAuth, login, pwnedPasswordCount, register } from "../../util/auth";
     import { z } from "zod/v4";
+    import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!registrationPromise) {
             close();
         }
@@ -45,30 +40,28 @@
             return;
         }
 
-        const result = await register(request.data);
-
-        if (!result) {
-            registrationErrors = {
-                errors: ['Failed to register.'],
-            };
-            return;
-        }
-        
-        if ('err' in result) {
-            registrationErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').RegisterRequest>} */(
-                result.err.data
-            );
-            return;
-        }
+        try {
+            const totpUri = await register(request.data);
             
-        return await qrcode.toDataURL(result.ok, {
-            color: {
-                dark: '#000',
-                light: '#fff0',
-            },
-            margin: 0,
-            width: 512,
-        });
+            return await qrcode.toDataURL(totpUri, {
+                color: {
+                    dark: '#000',
+                    light: '#fff0',
+                },
+                margin: 0,
+                width: 512,
+            });
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                registrationErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').RegisterRequest>} */(
+                    err.errorResponse.data
+                );
+            } else {
+                registrationErrors = {
+                    errors: ['Failed to register.'],
+                };
+            }
+        }
     };
 
     const performLogin = async () => {
@@ -85,21 +78,20 @@
             return;
         }
 
-        const result = await login(request.data);
-
-        if (!result) {
-            loginErrors = {
-                errors: ['Failed to sign in.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
+        try {
+            await login(request.data);
+            await checkAuth();
             close();
-        } else {
-            loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
+                    err.errorResponse.data
+                );
+            } else {
+                loginErrors = {
+                    errors: ['Failed to sign in.'],
+                };
+            }
         }
     };
 
@@ -111,6 +103,10 @@
     let passwordConfirm = $state("");
     let name = $state("");
     let twoFactor = $state("");
+    
+    let showPassword = $state(false);
+
+    let pwnedPasswords = $derived(pwnedPasswordCount(password));
     
     /** @type {Promise<string | undefined> | null} */
     let registrationPromise = $state(null);
@@ -142,9 +138,41 @@
         aspect-ratio: 1;
         font-size: 4rem;
     }
+
+    .password-warning {
+        margin-bottom: 1rem;
+    }
+
+    .password-wrapper {
+        position: relative;
+
+        input {
+            padding-right: 2rem;
+        }
+    }
+
+    .checking-password {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #666;
+        margin-bottom: 1rem;
+
+        :global(svg) {
+            font-size: 1rem;
+        }
+    }
+
+    .show-password-button {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if registrationPromise}
             {#await registrationPromise}
@@ -241,16 +269,26 @@
                             <p class="error">{registrationErrors.properties.name.errors[0]}</p>
                         {/if}
                     </div>
-                    <div>
+                    <div class="password-wrapper">
                         <label class="inline" for="password">Password</label>
                         <input
-                            bind:value={password} type="password" name="password" id="password"
+                            bind:value={password} type={showPassword ? 'text' : 'password'} name="password" id="password"
                             placeholder="" autocomplete="new-password webauthn"
                             required minlength="12" maxlength="128"
                         >
                         {#if registrationErrors?.properties?.password?.errors?.at(0)}
                             <p class="error">{registrationErrors.properties.password.errors[0]}</p>
                         {/if}
+                        <button class="show-password-button" onclick={(e) => {
+                            e.preventDefault();
+                            showPassword = !showPassword;
+                        }}>
+                            {#if showPassword}
+                                <EyeOff/>
+                            {:else}
+                                <Eye/>
+                            {/if}
+                        </button>
                     </div>
                     <div>
                         <label class="inline" for="password-confirm">Confirm Password</label>
@@ -262,9 +300,33 @@
                     </div>
                 </article>
                 <footer>
-                    <button class="btn btn-outline btn-dark btn-center w-full">
-                        Register
-                    </button>
+                    {#await pwnedPasswords}
+                        <p class="checking-password">
+                            <Spinner/>
+                            Checking password...
+                        </p>
+                        <button class="btn btn-outline btn-dark btn-center w-full" disabled>
+                            Register
+                        </button>
+                    {:then count}
+                        {#if count > 0}
+                            <p class="error password-warning">
+                                This password is not secure! It has been detected in
+                                {#if count == 1}
+                                    a data breach!
+                                {:else}
+                                    {count} data breaches!
+                                {/if}
+                            </p>
+                            <button class="btn btn-outline btn-dark btn-center w-full" disabled>
+                                Register
+                            </button>
+                        {:else}
+                            <button class="btn btn-outline btn-dark btn-center w-full">
+                                Register
+                            </button>
+                        {/if}
+                    {/await}
                 </footer>
             </form>
         {/if}

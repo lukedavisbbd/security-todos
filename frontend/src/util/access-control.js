@@ -1,30 +1,18 @@
+import { UserWithRolesSchema } from "common";
 import { apiFetch } from "./http";
+import { z } from "zod/v4";
 
 /**
  * @param {string} search
  */
 export const searchUsers = async (search) => {
-    /**
-     * @type {import("./http").ApiResult<import("common").UserWithRoles[]> | null}
-     */
-    const result = await apiFetch(`/users?search=${encodeURIComponent(search)}`);
-
-    if (!result)
-        return null;
-
-    return result;
+    const users = await apiFetch(`/users?search=${encodeURIComponent(search)}`);
+    return UserWithRolesSchema.array().parse(users);
 };
 
 export const fetchRoles = async () => {
-    /**
-     * @type {import("./http").ApiResult<string[]> | null}
-     */
-    const result = await apiFetch(`/roles`);
-
-    if (!result)
-        return null;
-
-    return result;
+    const roles = await apiFetch(`/roles`);
+    return z.string().array().parse(roles);
 };
 
 /**
@@ -32,17 +20,10 @@ export const fetchRoles = async () => {
  * @param {string} role
  */
 export const addRole = async (userId, role) => {
-    /**
-     * @type {import("./http").ApiResult<string[]> | null}
-     */
-    const result = await apiFetch(`/users/${userId}/roles`, 'POST', {
+    const newRoles = await apiFetch(`/users/${userId}/roles`, 'POST', {
         role,
     });
-
-    if (!result)
-        return null;
-
-    return result;
+    return z.string().array().parse(newRoles);
 };
 
 /**
@@ -50,15 +31,15 @@ export const addRole = async (userId, role) => {
  * @param {string} role
  */
 export const deleteRole = async (userId, role) => {
-    /**
-     * @type {import("./http").ApiResult<string[]> | null}
-     */
-    const result = await apiFetch(`/users/${userId}/roles`, 'DELETE', {
+    const newRoles = await apiFetch(`/users/${userId}/roles`, 'DELETE', {
         role,
     });
+    return z.string().array().parse(newRoles);
+};
 
-    if (!result)
-        return null;
-
-    return result;
+/**
+ * @param {number} userId
+ */
+export const logoutUser = async (userId) => {
+    await apiFetch(`/auth/logout/${userId}`);
 };

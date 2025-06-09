@@ -1,6 +1,6 @@
 import express from 'express';
 import config from './config/config.js';
-import apiRoutes from './routes/api-routes.js';
+import routes from './routes/routes.js';
 import { errorHandler } from './middleware/error-middleware.js';
 import cookieParser from 'cookie-parser';
 import { AppError } from 'common';
@@ -16,7 +16,7 @@ const app = express();
 app.use(cookieParser())
 app.use(express.json());
 
-app.use('/api/', apiRoutes);
+app.use('/api/', routes);
 
 app.use('*path', (_res, _req) => {
     throw new AppError({

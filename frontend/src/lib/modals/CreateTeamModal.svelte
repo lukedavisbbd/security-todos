@@ -5,14 +5,9 @@
     import { CreateTeamSchema } from "common";
     import { createTeam } from "../../util/team";
     import { z } from "zod/v4";
+    import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!createPromise) {
             close();
         }
@@ -30,29 +25,27 @@
             return;
         }
 
-        const result = await createTeam(request.data.teamName);
-
-        if (!result) {
-            createErrors = {
-                errors: ['Failed to create team.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
-            onTeamCreated(result.ok);
+        try {
+            const result = await createTeam(request.data.teamName);
+            onTeamCreated(result);
             close();
-        } else {
-            createErrors = /** @type {{ errors?: string[], properties?: { teamName?: { errors?: string[] } } } | null} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                createErrors = /** @type {{ errors?: string[], properties?: { teamName?: { errors?: string[] } } } | null} */(
+                    err.errorResponse.data
+                );
+            } else {
+                createErrors = {
+                    errors: [err?.message || 'Failed to create team.'],
+                };
+            }
         }
     };
 
     /** @type {{ close: () => void, onTeamCreated: (team: import('common').Team) => void }} */
     let { close, onTeamCreated } = $props();
 
-    let teamName = $state("");
+    let teamName = $state('');
     
     /** @type {Promise<void> | null} */
     let createPromise = $state(null);
@@ -73,7 +66,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if createPromise}
             <article>
@@ -103,7 +96,7 @@
                         <input
                             bind:value={teamName} type="text" name="team-name" id="team-name"
                             placeholder="" autocomplete="organization"
-                            required maxlength="64"
+                            required maxlength="32"
                         >
                         {#if createErrors?.properties?.teamName?.errors?.at(0)}
                             <p class="error">{createErrors.properties.teamName.errors[0]}</p>

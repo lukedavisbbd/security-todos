@@ -26,7 +26,6 @@ export const setAuthCookies = (res, jwtContents, refreshToken) => {
  *     jwtContents?: import('common').JwtContents & ({ iat: number, exp: number } | {})
  * })} req 
  * @param {import('express').Response} res 
- * @returns 
  */
 const authenticateByJwt = async (req, res) => {
     const jwtCookie = req.cookies[config.jwtCookie];
@@ -55,7 +54,9 @@ const authenticateByJwt = async (req, res) => {
                         return;
                     }
                 }
-            } catch {}
+            } catch {
+                // logout on error
+            }
         }
     }
 

@@ -5,14 +5,9 @@
     import { CreateTaskSchema } from "common";
     import { createTask } from "../../util/tasks";
     import { z } from "zod/v4";
+    import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!createPromise) {
             close();
         }
@@ -22,47 +17,46 @@
         createErrors = null;
         const request = CreateTaskSchema.safeParse({
             teamId,
-            assignedToId: assignedToId || undefined,
-            statusId: Number(statusId),
+            assignedToId: assignedToId || null,
+            statusId,
             name: taskName,
-            content: taskContent || undefined,
+            content: taskContent,
         });
         if (request.error) {
             createErrors = z.treeifyError(request.error);
             return;
         }
-        const result = await createTask(request.data);
 
-        if (!result) {
-            createErrors = {
-                errors: ['Failed to create task.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
-            onTaskCreated(result.ok);
+        try {
+            const result = await createTask(request.data);
+            onTaskCreated(result);
             close();
-        } else {
-            createErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                createErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
+                    err.errorResponse.data
+                );
+            } else {
+                createErrors = {
+                    errors: ['Failed to create task.'],
+                }
+            }
         }
     };
 
     /** @type {{ 
      *   teamId: number,
-     *   members: import('common').TeamMember[],
-     *   statuses: Array<{ status_id: number, status_name: string }>,
+     *   members: import('common').User[],
+     *   allStatuses: import('common').Status[],
      *   close: () => void, 
      *   onTaskCreated: (task: import('common').Task) => void 
      * }} */
-    let { teamId, members, statuses, close, onTaskCreated } = $props();
+    let { teamId, members, allStatuses, close, onTaskCreated } = $props();
 
     let taskName = $state("");
     let taskContent = $state("");
     let assignedToId = $state(null);
-    let statusId = $state(statuses.find(s => s.status_name === 'todo')?.status_id || statuses[0]?.status_id || 1);
+    let statusId = $state(allStatuses.find(s => s.statusName === 'todo')?.statusId ?? -1);
     
     /** @type {Promise<void> | null} */
     let createPromise = $state(null);
@@ -83,14 +77,7 @@
     }
 
     select {
-        display: block;
-        padding: 0.3rem 0.75rem;
-        border: 1px solid #0003;
-        border-radius: 0.3rem;
         width: 100%;
-        background-color: white;
-        font-size: inherit;
-        font-family: inherit;
     }
 
     textarea {
@@ -106,7 +93,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if createPromise}
             <article>
@@ -156,8 +143,8 @@
                         <label for="assigned-to">Assign To</label>
                         <select bind:value={assignedToId} name="assigned-to" id="assigned-to">
                             <option value={null}>Unassigned</option>
-                            {#each members as member (member.user_id)}
-                                <option value={member.user_id}>{member.name}</option>
+                            {#each members as member (member.userId)}
+                                <option value={member.userId}>{member.name}</option>
                             {/each}
                         </select>
                         {#if createErrors?.properties?.assignedToId?.errors?.at(0)}
@@ -166,9 +153,9 @@
                     </div>
                     <div>
                         <label for="status">Status</label>
-                        <select bind:value={statusId} name="status" id="status" required>
-                            {#each statuses as status (status.status_id)}
-                                <option value={status.status_id}>{status.status_name}</option>
+                        <select bind:value={statusId} name="status" id="status" required class="status-select">
+                            {#each allStatuses as status (status.statusId)}
+                                <option value={status.statusId}>{status.statusName}</option>
                             {/each}
                         </select>
                         {#if createErrors?.properties?.statusId?.errors?.at(0)}

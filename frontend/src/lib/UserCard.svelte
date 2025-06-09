@@ -1,15 +1,24 @@
 <script>
-  import { LogOut, Plus, RotateCcwKey, X } from "@lucide/svelte";
-    import { gravatarUrl } from "../util/stores";
+    import { LogOut, Plus, RotateCcwKey, X } from "@lucide/svelte";
     import ProfileLogo from "./ProfileLogo.svelte";
     import Spinner from "./Spinner.svelte";
     import { clickOutside } from "../util/click-outside";
-    import { addRole, deleteRole } from "../util/access-control";
+    import { addRole, deleteRole, logoutUser } from "../util/access-control";
 
-    /** @type {{ user: import('common').UserWithRoles, allRoles: Promise<import('../util/http').ApiResult<string[]> | null>, onChangeRoles: (newRoles: string[]) => void }} */
+    /** @type {{ user: import('common').UserWithRoles, allRoles: string[], onChangeRoles: (newRoles: string[]) => void }} */
     let { user, allRoles, onChangeRoles } = $props();
 
+    /** @type {Promise<void> | null} */
+    let logoutPromise = $state(null);
+    let logoutError = $state('');
+
+    /** @type {Promise<void> | null} */
+    let passwordPromise = $state(null);
+    let passwordError = $state('');
+
     let showAddMenu = $state(false);
+
+    const missingRoles = allRoles.filter(role => !user.roles.includes(role));
 </script>
 
 <style>
@@ -84,17 +93,26 @@
             box-shadow: 0 0.1rem 0.2rem #0001;
             margin: 0;
             padding: 0.5rem;
-
-            .error {
-                text-wrap-mode: nowrap;
-            }
         }
+    }
+
+    .spinner-wrapper {
+        :global(*) {
+            color: white;
+        }
+    }
+
+    .logout-button {
+        display: flex;
+        flex-direction: column;
+        align-items: end;
+        gap: 0;
     }
 </style>
 
 <article>
     <section class="profile">
-        <ProfileLogo logoSrc={gravatarUrl(user.user.email)} initials={user.user.name.split(' ').map(name => name.substring(0, 1).toUpperCase()).join('')}/>
+        <ProfileLogo email={user.user.email} name={user.user.name}/>
         {user.user.name}
     </section>
     <section class="roles">
@@ -104,57 +122,77 @@
                     {role}
                 </span>
                 <button onclick={async () => {
-                    const result = await deleteRole(user.user.userId, role);
-                    if (result && 'ok' in result) {
-                        onChangeRoles(result.ok);
-                    }
+                    const newRoles = await deleteRole(user.user.userId, role);
+                    onChangeRoles(newRoles);
                 }}>
                     <X/>
                 </button>
             </div>
         {/each}
-        <div class="add-button-wrapper">
-            <button class="btn" title="Add Role" onclick={() => showAddMenu = true}>
-                <Plus class="full"/>
-            </button>
-            {#if showAddMenu}
-                <menu use:clickOutside={() => showAddMenu = false}>
-                    {#await allRoles}
-                        <Spinner/>
-                    {:then allRoles}
-                        {#if !allRoles || 'err' in allRoles}
-                            <p class="error">Failed to fetch role list.</p>
-                        {:else}
-                            {#each allRoles.ok.filter(role => !user.roles.includes(role)) as role}
-                                <div class="chip">
-                                    <span>
-                                        {role}
-                                    </span>
-                                    <button onclick={async () => {
-                                        showAddMenu = false;
-                                        const result = await addRole(user.user.userId, role);
-                                        if (result && 'ok' in result) {
-                                            onChangeRoles(result.ok);
-                                        }
-                                    }}>
-                                        <Plus/>
-                                    </button>
-                                </div>
-                            {/each}
-                        {/if}
-                    {/await}
-                </menu>
-            {/if}
-        </div>
+        {#if missingRoles.length > 0}
+            <div class="add-button-wrapper">
+                <button class="btn" title="Add Role" onclick={() => showAddMenu = true}>
+                    <Plus class="full"/>
+                </button>
+                {#if showAddMenu}
+                    <menu use:clickOutside={() => showAddMenu = false}>
+                        {#each missingRoles as role}
+                            <div class="chip">
+                                <span>
+                                    {role}
+                                </span>
+                                <button onclick={async () => {
+                                    showAddMenu = false;
+                                    const newRoles = await addRole(user.user.userId, role);
+                                    onChangeRoles(newRoles);
+                                }}>
+                                    <Plus/>
+                                </button>
+                            </div>
+                        {/each}
+                    </menu>
+                {/if}
+            </div>
+        {/if}
     </section>
     <section class="buttons">
-        <button class="btn btn-outline">
-            <RotateCcwKey/>
-            Reset Password
-        </button>
-        <button class="btn btn-danger">
-            <LogOut/>
-            Force Logout
-        </button>
+        <section>
+            <button class="btn btn-outline">
+                {#if passwordPromise}
+                    <div class="spinner-wrapper">
+                        <Spinner/>
+                    </div>
+                {:else}
+                    <RotateCcwKey/>
+                {/if}
+                Reset Password
+            </button>
+        </section>
+        <section class="logout-button">
+            <button class="btn btn-danger" onclick={() => {
+                logoutError = '';
+                logoutPromise = logoutUser(user.user.userId)
+                    .then(() => {
+                        logoutPromise = null;
+                    })
+                    .catch(err => {
+                        logoutError = err.message || 'Failed to logout user.';
+                        logoutPromise = null;
+                    });
+            }}
+            >
+                {#if logoutPromise}
+                    <div class="spinner-wrapper">
+                        <Spinner/>
+                    </div>
+                {:else}
+                    <LogOut/>
+                {/if}
+                Force Logout
+            </button>
+            {#if logoutError}
+                <p class="error">{logoutError}</p>
+            {/if}
+        </section>
     </section>
 </article>

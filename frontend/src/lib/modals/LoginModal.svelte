@@ -3,16 +3,11 @@
     import { fade } from "svelte/transition";
     import Spinner from "../Spinner.svelte";
     import { LoginRequestSchema } from "common";
-    import { login } from "../../util/auth";
+    import { checkAuth, login, pwnedPasswordCount } from "../../util/auth";
     import { z } from "zod/v4";
+    import { ApiError } from "../../util/http";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!loginPromise) {
             close();
         }
@@ -33,21 +28,20 @@
             return;
         }
 
-        const result = await login(request.data);
-
-        if (!result) {
-            loginErrors = {
-                errors: ['Failed to sign in.'],
-            };
-            return;
-        }
-        
-        if ('ok' in result) {
+        try {
+            await login(request.data);
+            await checkAuth();
             close();
-        } else {
-            loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
-                result.err.data
-            );
+        } catch (err) {
+            if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+                loginErrors = /** @type {import('zod/v4/core').$ZodErrorTree<import('common').LoginRequest>} */(
+                    err.errorResponse.data
+                );
+            } else {
+                loginErrors = {
+                    errors: ['Failed to sign in.'],
+                }
+            }
         }
 
         twoFactor = '';
@@ -61,6 +55,8 @@
     let twoFactor = $state("");
 
     let enterTwoFactor = $state(false);
+
+    let pwnedPasswords = $derived(pwnedPasswordCount(password));
     
     /** @type {Promise<void> | null} */
     let loginPromise = $state(null);
@@ -85,7 +81,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         {#if loginPromise}
             <article>
@@ -160,6 +156,22 @@
                                 <p class="error">{loginErrors.properties.password.errors[0]}</p>
                             {/if}
                         </div>
+                        <!-- svelte-ignore block_empty -->
+                        {#await pwnedPasswords}
+                        {:then count}
+                            {#if count > 0}
+                                <p class="error password-warning">
+                                    This password is not secure! It has been detected in
+                                    {#if count == 1}
+                                        a data breach!
+                                    {:else}
+                                        {count} data breaches!
+                                    {/if}
+                                    <br>
+                                    Please change your password immediately!
+                                </p>
+                            {/if}
+                        {/await}
                     {/if}
                 </article>
                 <footer>

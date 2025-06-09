@@ -5,19 +5,31 @@
     import ProfileLogo from "../ProfileLogo.svelte";
     import { searchUsers } from "../../util/access-control";
     import { addUserToTeam } from "../../util/team";
-    import { gravatarUrl } from "../../util/stores";
 
-    /**
-     * @param {MouseEvent | KeyboardEvent} e
-     */
-    const tryClose = (e) => {
-        if (e instanceof KeyboardEvent && e.key != 'Escape') {
-            return;
-        }
+    const tryClose = () => {
         if (!addingMember) {
             close();
         }
     };
+
+    /** @param {number} delayMs */
+    const timeoutPromise = (delayMs) => {
+        return new Promise(resolve => setTimeout(resolve, delayMs));
+    };
+
+    /** @type {{ 
+     *   teamId: number,
+     *   existingMembers: import('common').User[],
+     *   close: () => void, 
+     *   onMemberAdded: () => void 
+     * }} */
+    let { teamId, existingMembers, close, onMemberAdded } = $props();
+
+    let search = $state('');
+    let users = $derived(search.trim().length >= 2 ? timeoutPromise(300).then(() => searchUsers(search.trim())) : null);
+    /** @type {number | null} */
+    let addingMember = $state(null);
+    let addError = $state('');
 
     /**
      * Add user to team
@@ -26,75 +38,25 @@
     const handleAddMember = async (user) => {
         addingMember = user.user.userId;
         addError = '';
-        
-        const result = await addUserToTeam(teamId, user.user.userId);
-        if (!result) {
-            addError = 'Failed to add member to team.';
-        } else if ('ok' in result) {
+
+        try {
+            const result = await addUserToTeam(teamId, user.user.userId);
             onMemberAdded();
             close();
-        } else {
-            addError = result.err.message || 'Failed to add member to team.';
+        } catch (err) {
+            addError = err.message ?? 'Failed to add member to team.';
         }
         
         addingMember = null;
     };
 
     /**
-     * Get user initials for profile logo
-     * @param {string} name
-     * @returns {string}
-     */
-    const getUserInitials = (name) => {
-        return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
-    };
-
-    /**
      * Check if user is already a member
      * @param {import('common').User} user
-     * @returns {boolean}
      */
     const isExistingMember = (user) => {
-        return existingMembers.some(member => member.user_id === user.userId);
+        return existingMembers.some(member => member.userId === user.userId);
     };
-
-    /** @type {{ 
-     *   teamId: number,
-     *   existingMembers: import('common').TeamMember[],
-     *   close: () => void, 
-     *   onMemberAdded: () => void 
-     * }} */
-    let { teamId, existingMembers, close, onMemberAdded } = $props();
-
-    let search = $state('');
-    let searchError = $state('');
-    let addError = $state('');
-    let users = $state([]);
-    let usersLoading = $state(false);
-    let addingMember = $state(null);
-
-    $effect(() => {
-        search.valueOf;
-        const delayedSearch = setTimeout(async () => {
-            if (search.trim().length < 2) {
-                users = [];
-                return;
-            }
-            
-            usersLoading = true;
-            searchError = '';
-            const result = await searchUsers(search.trim());
-            if (result && 'ok' in result) {
-                users = result.ok;
-            } else {
-                users = [];
-                searchError = 'Failed to search users.';
-            }
-            usersLoading = false;
-        }, 300);
-
-        return () => clearTimeout(delayedSearch);
-    });
 </script>
 
 <style>
@@ -183,7 +145,7 @@
     }
 </style>
 
-<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose} onkeydown={tryClose}>
+<div transition:fade={{ duration: 150 }} class="modal-wrapper grey-zone" aria-hidden="true" onclick={tryClose}>
     <dialog open onclick={e => e.stopPropagation()}>
         <header>
             Add Team Member
@@ -200,56 +162,60 @@
                 <label class="inline" for="search">Search Users</label>
                 <input id="search" type="text" name="search" placeholder="" bind:value={search}>
             </div>
-            
-            {#if search.trim().length < 2}
+
+            {#if users}
+                {#await users}
+                    <div class="search-state">
+                        <Spinner/>
+                    </div>
+                {:then users}
+                    {#if users.length === 0}
+                        <div class="search-state">
+                            No users found matching "{search}"
+                        </div>
+                    {:else}
+                        <div class="search-results">
+                            {#each users as user (user.user.userId)}
+                                <div class="user-item">
+                                    <div class="user-info">
+                                        <ProfileLogo 
+                                            email={user.user.email}
+                                            name={user.user.name}
+                                        />
+                                        <div class="user-details">
+                                            <div class="user-name">{user.user.name}</div>
+                                            <div class="user-email">{user.user.email}</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {#if isExistingMember(user.user)}
+                                            <span class="member-badge">Already a member</span>
+                                        {:else if addingMember === user.user.userId}
+                                            <button class="btn btn-small btn-primary" disabled>
+                                                <Spinner/>
+                                            </button>
+                                        {:else}
+                                            <button 
+                                                class="btn btn-small btn-primary" 
+                                                onclick={() => handleAddMember(user)}
+                                                title="Add to team"
+                                            >
+                                                <Plus/>
+                                            </button>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                {:catch error}
+                    <div class="search-state">
+                        <p class="error">{error}</p>
+                    </div>
+                {/await}
+            {:else}
                 <div class="search-hint">
                     Enter at least 2 characters to search for users
-                </div>
-            {:else if usersLoading}
-                <div class="search-state">
-                    <Spinner/>
-                </div>
-            {:else if searchError}
-                <div class="search-state">
-                    <p class="error">{searchError}</p>
-                </div>
-            {:else if users.length === 0}
-                <div class="search-state">
-                    No users found matching "{search}"
-                </div>
-            {:else}
-                <div class="search-results">
-                    {#each users as user (user.user.userId)}
-                        <div class="user-item">
-                            <div class="user-info">
-                                <ProfileLogo 
-                                    logoSrc={gravatarUrl(user.user.email)} 
-                                    initials={getUserInitials(user.user.name)}
-                                />
-                                <div class="user-details">
-                                    <div class="user-name">{user.user.name}</div>
-                                    <div class="user-email">{user.user.email}</div>
-                                </div>
-                            </div>
-                            <div>
-                                {#if isExistingMember(user.user)}
-                                    <span class="member-badge">Already a member</span>
-                                {:else if addingMember === user.user.userId}
-                                    <button class="btn btn-small btn-primary" disabled>
-                                        <Spinner/>
-                                    </button>
-                                {:else}
-                                    <button 
-                                        class="btn btn-small btn-primary" 
-                                        onclick={() => handleAddMember(user)}
-                                        title="Add to team"
-                                    >
-                                        <Plus/>
-                                    </button>
-                                {/if}
-                            </div>
-                        </div>
-                    {/each}
                 </div>
             {/if}
         </article>
