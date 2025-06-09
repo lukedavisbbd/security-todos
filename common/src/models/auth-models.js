@@ -50,6 +50,26 @@ export const RegisterRequestSchema = z.object({
  * @typedef {z.infer<typeof RegisterRequestSchema>} RegisterRequest
  */
 
+export const ChangePasswordRequestSchema = z.object({
+    oldPassword: z.preprocess(trimUnknown,
+        z.string()
+        .min(12, { error: 'Password must be at least 12 characters long.' })
+        .max(128, { error: 'Password is too long.' })
+    ),
+    newPassword: z.preprocess(trimUnknown,
+        z.string()
+        .min(12, { error: 'Password must be at least 12 characters long.' })
+        .max(128, { error: 'Password is too long.' })
+    ),
+    twoFactor: z.string()
+        .length(6, { error: '2FA pin must be exactly 6 digits.' })
+        .refine(string => digitRegex.test(string), { error: '2FA pin may only contain digits.' }),
+});
+
+/**
+ * @typedef {z.infer<typeof ChangePasswordRequestSchema>} ChangePasswordRequest
+ */
+
 export const UserSchema = z.object({
     userId: z.number(),
     email: z.email(),
