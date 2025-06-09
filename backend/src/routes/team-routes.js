@@ -13,6 +13,7 @@ import {
 } from '../db/team-queries.js';
 
 import { authenticated } from '../middleware/auth-middleware.js';
+import { validate } from '../utils/validation.js';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ const router = Router();
  * @param {import('express').Response} res 
  */
 router.post('/teams', authenticated, async (req, res) => {
-  const { teamName } = CreateTeamSchema.parse(req.body);
+  const { teamName } = validate(CreateTeamSchema, req.body);
   
   // assert that authentication middleware has included jwtContents
   const authenticatedReq = /** @type {import('../index.js').AuthenticatedRequest} */(req);
@@ -73,9 +74,9 @@ router.post('/teams/:teamId/users', authenticated, async (req, res) => {
     throw new AppError({
       code: 'validation_error',
       status: 400,
-      message: 'Validation Error',
+      message: `Invalid task ID '${req.params.id}'`,
       data: {
-          errors: ['Invalid team ID']
+          errors: [`Invalid task ID '${req.params.id}'`]
       },
     });
   }
@@ -91,7 +92,7 @@ router.post('/teams/:teamId/users', authenticated, async (req, res) => {
     });
   }
 
-  const { userId } = AddUserToTeamSchema.parse(req.body);
+  const { userId } = validate(AddUserToTeamSchema, req.body);
   await addUserToTeam(userId, teamId);
   res.status(204).send();
 });
@@ -107,13 +108,24 @@ router.delete('/teams/:teamId/users/:userId', authenticated, async (req, res) =>
   // @ts-ignore - jwtContents is added by authenticated middleware
   const currentUserId = req.jwtContents.user.userId;
   
-  if (isNaN(teamId) || isNaN(userIdToRemove)) {
+  if (isNaN(teamId)) {
     throw new AppError({
       code: 'validation_error',
       status: 400,
-      message: 'Validation Error',
+      message: `Invalid task ID '${req.params.teamId}'`,
       data: {
-          errors: ['Invalid team ID or user ID']
+          errors: [`Invalid task ID '${req.params.teamId}'`]
+      },
+    });
+  }
+  
+  if (isNaN(userIdToRemove)) {
+    throw new AppError({
+      code: 'validation_error',
+      status: 400,
+      message: `Invalid user ID '${req.params.userId}'`,
+      data: {
+          errors: [`Invalid user ID '${req.params.userId}'`]
       },
     });
   }
@@ -148,9 +160,9 @@ router.get('/teams/:teamId/users', authenticated, async (req, res) => {
     throw new AppError({
       code: 'validation_error',
       status: 400,
-      message: 'Validation Error',
+      message: `Invalid team ID ${req.params.teamId}`,
       data: {
-          errors: ['Invalid team ID']
+          errors: [`Invalid team ID ${req.params.teamId}`]
       },
     });
   }
@@ -167,7 +179,7 @@ router.get('/teams/:teamId/users', authenticated, async (req, res) => {
   }
 
   const userTeams = await getTeamsForUser(currentUserId);
-  const isMember = userTeams.some(t => t.team_id === teamId) || team.team_owner_id === currentUserId;
+  const isMember = userTeams.some(t => t.teamId === teamId) || team.teamOwnerId === currentUserId;
   
   if (!isMember) {
     throw new AppError({
@@ -197,9 +209,9 @@ router.get('/teams/:teamId', authenticated, async (req, res) => {
     throw new AppError({
       code: 'validation_error',
       status: 400,
-      message: 'Validation Error',
+      message: `Invalid team ID ${req.params.teamId}`,
       data: {
-          errors: ['Invalid team ID']
+          errors: [`Invalid team ID ${req.params.teamId}`]
       },
     });
   }
@@ -216,7 +228,7 @@ router.get('/teams/:teamId', authenticated, async (req, res) => {
 
   // Check if current user is team member or owner
   const userTeams = await getTeamsForUser(currentUserId);
-  const isMember = userTeams.some(t => t.team_id === teamId) || team.team_owner_id === currentUserId;
+  const isMember = userTeams.some(t => t.teamId === teamId) || team.teamOwnerId === currentUserId;
   
   if (!isMember) {
     throw new AppError({

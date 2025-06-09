@@ -1,20 +1,28 @@
 <script>
-    import { onMount } from "svelte";
     import { ArrowLeft, Clock, User, CheckSquare } from "@lucide/svelte";
     import { getTaskHistory, getTaskById } from "../util/tasks";
     import Spinner from "../lib/Spinner.svelte";
+    import { getTeamMembers } from "../util/team";
+    import { getAllStatuses } from "../util/status";
+    import ErrorTryAgain from "../lib/ErrorTryAgain.svelte";
+    import { route as softRoute } from "@mateothegreat/svelte5-router";
 
-    let { route: routeInfo } = $props();
-    const taskId = parseInt(routeInfo.result.path.params.taskId);
+    let { route } = $props();
+    const taskId = parseInt(route.result.path.params.taskId);
     
-    let task = getTaskById(taskId);
-    let history = getTaskHistory(taskId);
+    let taskMembers = $state(getTaskById(taskId).then(async (task) => {
+        return {
+            task,
+            members: task ? await getTeamMembers(task.teamId) : [],
+        }
+    }));
+    let history = $state(getTaskHistory(taskId));
+    let allStatuses = $state(getAllStatuses());
 
     /**
      * Format duration between two timestamps
      * @param {Date} start
      * @param {Date} end
-     * @returns {string}
      */
     const formatDuration = (start, end) => {
         const diffMs = end.getTime() - start.getTime();
@@ -31,16 +39,6 @@
         } else {
             return 'Less than a minute';
         }
-    };
-
-    /**
-     * Format timestamp for display
-     * @param {string} timestamp
-     * @returns {string}
-     */
-    const formatTimestamp = (timestamp) => {
-        const date = new Date(timestamp);
-        return date.toLocaleString();
     };
 </script>
 
@@ -112,64 +110,99 @@
         padding: 3rem 1rem;
         font-size: 2rem;
     }
+
+    .status-badge {
+        display: inline-block;
+        text-transform: uppercase;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
+        background-color: #f0f4f8;
+        border: 1px solid #007acc;
+        border-radius: 0.3rem;
+        padding: 0.1rem 0.35rem;
+        color: #007acc;
+    }
+
+    .assigned-to {
+        color: black;
+    }
+
+    .back-button {
+        display: inline-flex;
+    }
 </style>
 
 <main>
-    {#await Promise.all([task, history])}
+    {#await Promise.all([taskMembers, history, allStatuses])}
         <section class="loading-state">
             <Spinner/>
         </section>
-    {:then [task, history]}
-        <header>
-            <button class="btn back-button" onclick={() => window.history.back()}>
-                <ArrowLeft/>
-                Back to Team
-            </button>
-            <section>
-                <h3>{task.task_name}</h3>
-                {#if task.task_content}
-                    <p>{task.task_content}</p>
-                {/if}
+    {:then [{task, members}, history, allStatuses]}
+        {#if task}
+            <header>
+                <a class="btn back-button" use:softRoute href="/team/{task.teamId}">
+                    <ArrowLeft/>
+                    Back to Team
+                </a>
+                <section>
+                    <h3>{task.taskName}</h3>
+                    {#if task.taskContent}
+                        <p>{task.taskContent}</p>
+                    {/if}
+                </section>
+            </header>
+
+            <section class="timeline">
+                <ul>
+                    {#each history as entry, index (entry.historyId)}
+                        {@const time = entry.timestamp}
+                        <li class="history-item">
+                            <header>
+                                <h6>
+                                    {index === 0 ? 'Task Created' : 'Status/Assignment Changed'}
+                                </h6>
+                                <p>
+                                    <Clock/>
+                                    {time.toLocaleString()}
+                                </p>
+                            </header>
+                            
+                            <section>
+                                <section>
+                                    <CheckSquare/>
+                                    Status: <span class="status-badge">{allStatuses.find(s => s.statusId === entry.statusId)?.statusName}</span>
+                                </section>
+                                <section>
+                                    <User/>
+                                    Assigned to: <span class="assigned-to">{members.find(m => m.userId === entry.assignedToId)?.name ?? 'Nobody'}</span>
+                                </section>
+                            </section>
+
+                            {#if index > 0}
+                                <section class="duration-badge">
+                                    Spent {formatDuration(new Date(history[index - 1].timestamp), new Date(entry.timestamp))} in previous state
+                                </section>
+                            {/if}
+                        </li>
+                    {/each}
+                </ul>
             </section>
-        </header>
-
-        <section class="timeline">
-            <ul>
-                {#each history as entry, index (entry.history_id)}
-                    <li class="history-item">
-                        <header>
-                            <h6>
-                                {index === 0 ? 'Task Created' : 'Status/Assignment Changed'}
-                            </h6>
-                            <p>
-                                <Clock/>
-                                {formatTimestamp(entry.timestamp)}
-                            </p>
-                        </header>
-                        
-                        <section>
-                            <section>
-                                <CheckSquare/>
-                                Status: <strong>{entry.status_name}</strong>
-                            </section>
-                            <section>
-                                <User/>
-                                Assigned to: <strong>{entry.assigned_to_name || 'Unassigned'}</strong>
-                            </section>
-                        </section>
-
-                        {#if index > 0}
-                            <section class="duration-badge">
-                                Spent {formatDuration(new Date(history[index - 1].timestamp), new Date(entry.timestamp))} in previous state
-                            </section>
-                        {/if}
-                    </li>
-                {/each}
-            </ul>
-        </section>
+        {:else}
+            <div class="error-wrapper">
+                <p>Team does not exist.</p>
+            </div>
+        {/if}
     {:catch error}
-        <section class="error-state">
-            <p>{error.message}</p>
-        </section>
+        <ErrorTryAgain {error} onTryAgain={() => {
+            taskMembers = getTaskById(taskId).then(async (task) => {
+                return {
+                    task,
+                    members: task ? await getTeamMembers(task.teamId) : [],
+                }
+            });
+            history = getTaskHistory(taskId);
+            allStatuses = getAllStatuses();
+        }}/>
     {/await}
 </main>

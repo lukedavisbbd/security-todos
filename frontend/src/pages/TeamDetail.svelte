@@ -1,12 +1,11 @@
 <script>
     import { getTeamById } from "../util/team";
-    import { getTasksForTeam } from "../util/tasks";
-    import { getAllStatuses } from "../util/status";
-    import { getTeamMembers } from "../util/team";
     import Spinner from "../lib/Spinner.svelte";
     import TasksTab from "../lib/team-detail/TasksTab.svelte";
     import MembersTab from "../lib/team-detail/MembersTab.svelte";
     import { userJwtContents } from "../util/stores";
+    import { ArrowLeft } from "@lucide/svelte";
+    import { route as softRoute } from "@mateothegreat/svelte5-router";
 
     let { route } = $props();
     
@@ -53,53 +52,67 @@
             }
         }
     }
+
+    .back-button {
+        display: inline-flex;
+    }
 </style>
 
 <main>
+    <a class="btn back-button" use:softRoute href="/">
+        <ArrowLeft/>
+        Back to Teams
+    </a>
     {#await teamPromise}
         <section class="loading-wrapper">
             <Spinner/>
         </section>
     {:then team}
-        {@const isTeamOwner = team.team_owner_id === $userJwtContents?.user?.userId}
-        <h3 class="team-title">
-            {team.team_name}
-            {#if isTeamOwner}
-                <span class="owner-badge" title="Team Owner">(Owned by you)</span>
+        {#if team}
+            {@const isTeamOwner = team.teamOwnerId === $userJwtContents?.user?.userId}
+            <h3 class="team-title">
+                {team.teamName}
+                {#if isTeamOwner}
+                    <span class="owner-badge" title="Team Owner">(Owned by you)</span>
+                {/if}
+            </h3>
+            <nav class="tabs">
+                <button 
+                    class="tab" 
+                    class:active={activeTab === 'tasks'}
+                    onclick={() => activeTab = 'tasks'}
+                >
+                    Tasks
+                </button>
+                <button 
+                    class="tab" 
+                    class:active={activeTab === 'members'}
+                    onclick={() => activeTab = 'members'}
+                >
+                    Members
+                </button>
+            </nav>
+            {#if activeTab === 'tasks'}
+                <TasksTab
+                    {teamId}
+                />
+            {:else if activeTab === 'members'}
+                <MembersTab
+                    {isTeamOwner}
+                    {teamId}
+                />
             {/if}
-        </h3>
-        <nav class="tabs">
-            <button 
-                class="tab" 
-                class:active={activeTab === 'tasks'}
-                onclick={() => activeTab = 'tasks'}
-            >
-                Tasks
-            </button>
-            <button 
-                class="tab" 
-                class:active={activeTab === 'members'}
-                onclick={() => activeTab = 'members'}
-            >
-                Members
-            </button>
-        </nav>
-        {#if activeTab === 'tasks'}
-            <TasksTab
-                {teamId}
-            />
-        {:else if activeTab === 'members'}
-            <MembersTab
-                {isTeamOwner}
-                {teamId}
-            />
+        {:else}
+            <section class="error-wrapper">
+                <p>Team does not exist.</p>
+            </section>
         {/if}
     {:catch error}
-        <div class="error-wrapper">
+        <section class="error-wrapper">
             <p>{error.message}</p>
             <button class="btn btn-outline" onclick={() => teamPromise = getTeamById(teamId)}>
                 Try Again
             </button>
-        </div>
+        </section>
     {/await}
 </main>

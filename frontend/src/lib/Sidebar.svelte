@@ -2,7 +2,7 @@
   import { fade, fly } from "svelte/transition";
   import ProfileLogo from "./ProfileLogo.svelte";
   import { userJwtContents } from "../util/stores";
-  import { LogOut, UserLock, X } from "@lucide/svelte";
+  import { Home, LogOut, UserLock, X } from "@lucide/svelte";
   import { route } from "@mateothegreat/svelte5-router";
   import Spinner from "./Spinner.svelte";
   import { logout } from "../util/auth";
@@ -71,6 +71,10 @@
         </button>
       </header>
       <article class="sidebar-content">
+        <a class="btn" href="/" onclick={() => showMenu = false} use:route>
+          <Home/>
+          Home
+        </a>
         {#if $userJwtContents.roles.some(role => role == 'access_admin') }
           <a class="btn" href="/access" onclick={() => showMenu = false} use:route>
             <UserLock/>

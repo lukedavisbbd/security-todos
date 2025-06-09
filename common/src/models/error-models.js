@@ -29,26 +29,14 @@ export class AppError extends Error {
     response;
 
     /**
-     * @param {ErrorResponse | z.ZodError | undefined} error 
+     * @param {ErrorResponse | undefined} error 
      */
     constructor(error = undefined) {
-        if (error instanceof z.ZodError) {
-            const message = z.prettifyError(error);
-            super(message);
-            
-            this.response = {
-                code: 'validation_error',
-                status: 400,
-                message,
-                data: z.treeifyError(error),
-            };
-        } else if (error) {
+        if (error) {
             super(error.message);
-            
             this.response = error;
         } else {
             super(unexpectedErrorResponse.message);
-            
             this.response = unexpectedErrorResponse;
         }
     }

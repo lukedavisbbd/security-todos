@@ -4,7 +4,8 @@
     import ProfileLogo from "../ProfileLogo.svelte";
     import { gravatarUrl } from "../../util/stores";
     import AddMemberModal from "../modals/AddMemberModal.svelte";
-  import Spinner from "../Spinner.svelte";
+    import Spinner from "../Spinner.svelte";
+    import ErrorTryAgain from "../ErrorTryAgain.svelte";
 
     /** @type {{ 
      *   isTeamOwner: boolean,
@@ -12,25 +13,24 @@
      * }} */
     let { isTeamOwner, teamId } = $props();
 
-    let members = $state(getTeamMembers(teamId));
+    let membersPromise = $state(getTeamMembers(teamId));
 
     /**
      * Remove a member from the team
-     * @param {import('common').TeamMember} member
+     * @param {import('common').User} member
      */
     const handleRemoveMember = async (member) => {
         if (!confirm(`Are you sure you want to remove ${member.name} from this team?`)) {
             return;
         }
 
-        await removeUserFromTeam(teamId, member.user_id);
-        members = getTeamMembers(teamId);
+        await removeUserFromTeam(teamId, member.userId);
+        membersPromise = getTeamMembers(teamId);
     };
 
     /**
      * Get user initials for profile logo
      * @param {string} name
-     * @returns {string}
      */
     const getUserInitials = (name) => {
         return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
@@ -163,7 +163,7 @@
     }
 </style>
 
-{#await members}
+{#await membersPromise}
     <section class="loading-wrapper">
         <Spinner/>
     </section>
@@ -194,7 +194,7 @@
                 </tr>
             </thead>
             <tbody>
-                {#each members as member (member.user_id)}
+                {#each members as member (member.userId)}
                     <tr>
                         <td>
                             <div class="member-info">
@@ -231,7 +231,9 @@
             {teamId}
             existingMembers={members}
             close={() => showAddMember = false}
-            onMemberAdded={() => getTeamMembers(teamId)}
+            onMemberAdded={() => membersPromise = getTeamMembers(teamId)}
         />
     {/if}
+{:catch error}
+    <ErrorTryAgain {error} onTryAgain={() => membersPromise = getTeamMembers(teamId)}/>
 {/await}

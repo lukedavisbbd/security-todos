@@ -4,7 +4,8 @@ import pg from 'pg';
 import bcrypt from 'bcrypt';
 import authenticator from 'authenticator';
 import config from '../config/config.js';
-import { AppError } from 'common';
+import { AppError, UserSchema } from 'common';
+import z from 'zod/v4';
 
 const saltRounds = 10;
 
@@ -40,47 +41,33 @@ const generateRefreshToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
 
+const UserInfoSchema = z.object({
+    userId: z.int(),
+    passwordHash: z.string().nonempty(),
+    email: z.email(),
+    name: z.string().nonempty(),
+    emailVerified: z.boolean(),
+    twoFactorKeyEncrypted: z.string().nonempty(),
+    refreshTokenHash: z.string().nonempty().optional(),
+});
+
 /**
  * @param {any} row
  */
 const mapRowToUserInfo = (row) => {
-    if (!row)
-        return null;
-
-    /** @type {number | undefined} */
-    const userId = row.user_id;
-    /** @type {string | undefined} */
-    const passwordHash = row.password;
-    /** @type {string | undefined} */
-    const email = row.email;
-    /** @type {string | undefined} */
-    const name = row.name;
-    /** @type {boolean | undefined} */
-    const emailVerified = row.email_verified;
-    /** @type {string | undefined} */
-    const twoFactorKeyEncrypted = row.two_factor_key;
-    /** @type {string | null} */
-    const refreshTokenHash = row.refresh_token;
-
-    if (!userId || !passwordHash || !email || !name || typeof emailVerified === 'undefined' || !twoFactorKeyEncrypted) {
-        console.error(`failed to map row to user ${userId}`, row);
-        throw new AppError();
-    }
-
-    return {
-        userId,
-        passwordHash,
-        email,
-        name,
-        emailVerified,
-        twoFactorKeyEncrypted,
-        refreshTokenHash,
-    };
+    return UserInfoSchema.parse({
+        userId: row.user_id,
+        passwordHash: row.password,
+        email: row.email,
+        name: row.name,
+        emailVerified: row.email_verified,
+        twoFactorKeyEncrypted: row.two_factor_key,
+        refreshTokenHash: row.refresh_token,
+    });
 };
 
 /**
  * @param {string | undefined} search
- * @returns {Promise<import('common').UserWithRoles[]>}
  */
 export const searchUsers = async (search) => {
     const result = await pool.query(
@@ -95,16 +82,16 @@ export const searchUsers = async (search) => {
     result.rows.forEach(row => {
         const existing = users.find(user => user.user.userId == row.user_id);
         if (existing && row.role_name) {
-            existing.roles.push(row.role_name);
+            existing.roles.push(z.string().parse(row.role_name));
         } else {
             users.push({
-                user: {
+                user: UserSchema.parse({
                     userId: row.user_id,
                     name: row.name,
                     email: row.email,
                     emailVerified: row.email_verified,
-                },
-                roles: row.role_name ? [row.role_name] : [],
+                }),
+                roles: row.role_name ? [z.string().parse(row.role_name)] : [],
             })
         }
     });
@@ -227,7 +214,8 @@ export const loginWithToken = async (userId, refreshToken) => {
  */
 export const loginUser = async (request) => {
     const result = await pool.query('SELECT user_id, email, name, password, email_verified, two_factor_key FROM users WHERE email = $1', [request.email]);
-    const userInfo = mapRowToUserInfo(result.rows[0]);
+    const row = result.rows[0];
+    const userInfo = row ? mapRowToUserInfo(row) : null;
 
     if (!userInfo)
         return null;
@@ -239,7 +227,6 @@ export const loginUser = async (request) => {
     const twoFactorKey = await decrypt(userInfo.twoFactorKeyEncrypted);
 
     if (!twoFactorKey) {
-        console.error('two factor key invalid');
         throw new AppError();
     }
 
@@ -316,11 +303,6 @@ export const registerUser = async (request) => {
         throw error;
     }
 
-    if (!userInfo) {
-        console.error('failed to add user');
-        throw new AppError();
-    }
-
     const refreshToken = generateRefreshToken();
     const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
@@ -333,14 +315,13 @@ export const registerUser = async (request) => {
 /**
  * Get a user record (user_id, email) by its numeric ID.
  * @param {number} userId
- * @returns {Promise<{ user_id: number, email: string } | null>}
  */
 export async function getUserById(userId) {
   const result = await pool.query(
-    `SELECT user_id, email
-     FROM users
-     WHERE user_id = $1`,
+    `SELECT user_id AS userId, email, name, email_verified as emailVerified
+    FROM users
+    WHERE user_id = $1`,
     [userId]
   );
-  return result.rows[0] || null;
+  return UserSchema.optional().parse(result.rows[0]) ?? null;
 }

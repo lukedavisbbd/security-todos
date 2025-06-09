@@ -12,12 +12,10 @@ export class ApiError extends Error {
 }
 
 /**
- * @template T
  * @template B
  * @param {string} path
  * @param {string} method
  * @param {B | undefined} body
- * @returns {Promise<T>}
  */
 export const apiFetch = async (path, method = 'GET', body = undefined) => {
     const resp = await fetch(`/api${path}`, {
@@ -30,14 +28,19 @@ export const apiFetch = async (path, method = 'GET', body = undefined) => {
     });
 
     if (resp.status === 204) {
-        return /** @type {T} */(null);
+        return;
     }
 
     if (resp.ok) {
-        return /** @type {T} */(await resp.json());
+        return /** @type {unknown} */(await resp.json());
     } else {
-        /** @type {import("common").ErrorResponse} */
-        const err = await resp.json();
+        let err;
+        try {
+            /** @type {import("common").ErrorResponse} */
+            err = await resp.json();
+        } catch {
+            throw new Error('An unexpected error has occurred.');
+        }
         if (err.code === 'not_logged_in') {
             userJwtContents.set(null);
         }

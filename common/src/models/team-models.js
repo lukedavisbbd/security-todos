@@ -2,58 +2,43 @@ import { z } from 'zod/v4';
 
 export const CreateTeamSchema = z.object({
   teamName: z
-    .string({ error: 'teamName must be a string' })
-    .min(1, { message: 'teamName cannot be empty' })
-    .max(64, { message: 'teamName must be at most 64 characters' }),
-});
-
-export const AddUserToTeamSchema = z.object({
-  userId: z
-    .number({ error: 'userId must be a number' })
-    .int()
-    .positive({ message: 'userId must be a positive integer' }),
-});
-
-// Base Team type
-export const TeamSchema = z.object({
-  team_id: z.number(),
-  team_name: z.string(),
-  team_owner_id: z.number(),
-});
-
-// Team with statistics type
-export const TeamWithStatsSchema = z.object({
-  team_id: z.number(),
-  team_name: z.string(),
-  team_owner_id: z.number(),
-  is_owner: z.boolean(),
-  member_count: z.number(),
-  task_count: z.number(),
-});
-
-// Team member type
-export const TeamMemberSchema = z.object({
-  user_id: z.number(),
-  email: z.string(),
-  name: z.string(),
+    .string({ error: 'Team name must be a string.' })
+    .min(1, { message: 'Team name cannot be empty.' })
+    .max(64, { message: 'Team name must be at most 64 characters.' }),
 });
 
 /**
  * @typedef {z.infer<typeof CreateTeamSchema>} CreateTeamRequest
  */
 
+export const AddUserToTeamSchema = z.object({
+  userId: z.int({ error: 'User ID must be an integer.' }),
+});
+
 /**
  * @typedef {z.infer<typeof AddUserToTeamSchema>} AddUserToTeamRequest
  */
+
+// Base Team type
+export const TeamSchema = z.object({
+  teamId: z.int(),
+  teamName: z.string(),
+  teamOwnerId: z.int(),
+});
 
 /**
  * @typedef {z.infer<typeof TeamSchema>} Team
  */
 
-/**
- * @typedef {z.infer<typeof TeamWithStatsSchema>} TeamWithStats
- */
+// Team with statistics type
+export const TeamWithStatsSchema = z.object({
+  teamId: z.int(),
+  teamName: z.string(),
+  teamOwnerId: z.int(),
+  memberCount: z.int(),
+  taskCount: z.int(),
+});
 
 /**
- * @typedef {z.infer<typeof TeamMemberSchema>} TeamMember
+ * @typedef {z.infer<typeof TeamWithStatsSchema>} TeamWithStats
  */

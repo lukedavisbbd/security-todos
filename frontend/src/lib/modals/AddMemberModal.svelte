@@ -20,7 +20,7 @@
 
     /** @type {{ 
      *   teamId: number,
-     *   existingMembers: import('common').TeamMember[],
+     *   existingMembers: import('common').User[],
      *   close: () => void, 
      *   onMemberAdded: () => void 
      * }} */
@@ -54,7 +54,6 @@
     /**
      * Get user initials for profile logo
      * @param {string} name
-     * @returns {string}
      */
     const getUserInitials = (name) => {
         return name.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('');
@@ -63,10 +62,9 @@
     /**
      * Check if user is already a member
      * @param {import('common').User} user
-     * @returns {boolean}
      */
     const isExistingMember = (user) => {
-        return existingMembers.some(member => member.user_id === user.userId);
+        return existingMembers.some(member => member.userId === user.userId);
     };
 </script>
 

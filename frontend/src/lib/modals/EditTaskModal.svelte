@@ -5,7 +5,7 @@
     import { UpdateTaskDetailsSchema } from "common";
     import { updateTaskDetails } from "../../util/tasks";
     import { z } from "zod/v4";
-  import { ApiError } from "../../util/http";
+    import { ApiError } from "../../util/http";
 
     const tryClose = () => {
         if (!updatePromise) {
@@ -17,7 +17,7 @@
         updateErrors = null;
         
         // Check if anything actually changed
-        if (taskName === task.task_name && taskContent === (task.task_content || '')) {
+        if (taskName === task.taskName && taskContent === (task.taskContent || '')) {
             close();
             return;
         }
@@ -33,8 +33,9 @@
         }
 
         try {
-            await updateTaskDetails(task.task_id, request.data.name, request.data.content);
+            await updateTaskDetails(task.taskId, request.data.name, request.data.content);
             onTaskUpdated();
+            close();
         } catch (err) {
             if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
                 updateErrors = /** @type {{ errors?: string[], properties?: any } | null} */(
@@ -49,15 +50,15 @@
     };
 
     /** @type {{ 
-     *   task: import('common').TaskWithAssignee,
+     *   task: import('common').Task,
      *   close: () => void, 
      *   onTaskUpdated: () => void 
      * }} */
     let { task, close, onTaskUpdated } = $props();
 
     // Initialize form values from task
-    let taskName = $state(task.task_name);
-    let taskContent = $state(task.task_content || '');
+    let taskName = $state(task.taskName);
+    let taskContent = $state(task.taskContent || '');
     
     /** @type {Promise<void> | null} */
     let updatePromise = $state(null);

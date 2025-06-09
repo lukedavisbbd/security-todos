@@ -1,35 +1,30 @@
+import { z } from "zod/v4";
 import { apiFetch } from "./http";
 import { userJwtContents } from "./stores";
+import { JwtContentsSchema, UserSchema } from "common";
 
 /**
  * @param {import("common").LoginRequest} request 
  */
 export const login = async (request) => {
-    /**
-     * @type {import("common").User}
-     */
-    const result = await apiFetch(`/auth/login`, 'POST', request);
-
-    return result;
+    const user = await apiFetch(`/auth/login`, 'POST', request);
+    return UserSchema.parse(user);
 };
 
 /**
  * @param {import("common").RegisterRequest} request 
  */
 export const register = async (request) => {
-    /** @type {string} */
-    const result = await apiFetch(`/auth/register`, 'POST', request);
-    
-    return result;
+    const totpUri = await apiFetch(`/auth/register`, 'POST', request);
+    return z.string().parse(totpUri);
 };
 
 export const whoami = async () => {
-    /** @type {import("common").JwtContents & { iat?: number, exp?: number }} */
-    const result = await apiFetch(`/auth/whoami`);
-
-    userJwtContents.set(result);
-
-    return result;
+    const jwtContents = await apiFetch(`/auth/whoami`);
+    return JwtContentsSchema.and(z.object({
+        iat: z.number().optional(),
+        exp: z.number().optional(),
+    })).parse(jwtContents);
 };
 
 export const checkAuth = async () => {
@@ -44,9 +39,6 @@ export const checkAuth = async () => {
  * @param {boolean} logoutAllSessions
  */
 export const logout = async (logoutAllSessions = false) => {
-    /**
-     * @type {{ message: 'success' }}
-     */
     await apiFetch(`/auth/logout${logoutAllSessions ? '?all' : ''}`);
     userJwtContents.set(null);
 };

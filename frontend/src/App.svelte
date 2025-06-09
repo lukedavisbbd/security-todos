@@ -5,7 +5,7 @@
   import Home from "./pages/Home.svelte";
   import TeamDetail from "./pages/TeamDetail.svelte";
   import TaskHistory from "./pages/TaskHistory.svelte";
-  import { Router } from "@mateothegreat/svelte5-router";
+  import { goto, Router } from "@mateothegreat/svelte5-router";
   import AccessControl from "./pages/AccessControl.svelte";
   import Navbar from "./lib/Navbar.svelte";
   import Spinner from "./lib/Spinner.svelte";
@@ -37,7 +37,13 @@
       path: "/access",
       component: AccessControl,
       hooks: {
-        pre: () => $userJwtContents?.roles.includes('access_admin'),
+        pre: () => {
+          const allowed = $userJwtContents?.roles.includes('access_admin');
+          if (!allowed) {
+            goto('/');
+          }
+          return allowed;
+        },
       },
     },
   ];

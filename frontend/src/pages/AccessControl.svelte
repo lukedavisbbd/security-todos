@@ -5,8 +5,8 @@
   import UserCard from "../lib/UserCard.svelte";
 
   let search = $state('');
-  let users = $derived(searchUsers(search));
-  let allRoles = fetchRoles();
+  let usersPromise = $derived(searchUsers(search));
+  let allRolesPromise = fetchRoles();
 </script>
 
 <style>
@@ -28,7 +28,7 @@
     <input id="search" type="text" name="search" placeholder="" bind:value={search}>
   </section>
   <section>
-    {#await Promise.all([users, allRoles])}
+    {#await Promise.all([usersPromise, allRolesPromise])}
       <h1>
         <Spinner/>
       </h1>
@@ -36,6 +36,7 @@
       {#each users as user (user.user.userId)}
         <UserCard {user} {allRoles} onChangeRoles={(newRoles) => {
           user.roles = newRoles;
+          usersPromise = Promise.resolve(users);
         }}/>
       {:else}
         <p>No users match the given search term.</p>

@@ -128,7 +128,7 @@
     {:then teams}
       {#if teams.length}
         <section class="teams-grid">
-          {#each teams as team (team.team_id)}
+          {#each teams as team (team.teamId)}
             <TeamCard {team}/>
           {/each}
         </section>

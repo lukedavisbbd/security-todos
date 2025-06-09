@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import {  addUserRole, deleteUserRole, fetchUserRoles, searchUsers } from '../db/user-queries.js';
-import {  RoleRequestSchema, UserSearchQuerySchema } from '../models/queries.js';
-import { AppError } from 'common';
+import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers } from '../db/user-queries.js';
+import { UserSearchQuerySchema } from '../models/queries.js';
+import { AddRoleRequestSchema, AppError } from 'common';
 import { fetchRoles } from '../db/role-queries.js';
+import { validate } from '../utils/validation.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get('/users', async (req, res) => {
 });
 
 router.post('/users/:userId/roles', async (req, res) => {
-    const { role } = RoleRequestSchema.parse({ role: req.body.role });
+    const { role } = validate(AddRoleRequestSchema, req.body);
     const userId = parseInt(req.params.userId);
 
     if (!isFinite(userId)) {
@@ -58,7 +59,7 @@ router.post('/users/:userId/roles', async (req, res) => {
 });
 
 router.delete('/users/:userId/roles', async (req, res) => {
-    const { role } = RoleRequestSchema.parse({ role: req.body.role });
+    const { role } = validate(AddRoleRequestSchema, req.body);
     const userId = parseInt(req.params.userId);
 
     if (!isFinite(userId)) {

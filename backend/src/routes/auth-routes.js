@@ -1,13 +1,15 @@
 import { AppError, LoginRequestSchema, RegisterRequestSchema } from 'common';
 import { Router } from 'express';
 import { clearAllRefreshTokens, deleteRefreshToken, loginUser, registerUser } from '../db/user-queries.js';
-import { authenticated, setAuthCookies } from '../middleware/auth-middleware.js';
+import { authenticated, requireRole, setAuthCookies } from '../middleware/auth-middleware.js';
 import config from '../config/config.js';
+import { validate } from '../utils/validation.js';
+import z from 'zod/v4';
 
 const router = Router();
 
 router.post('/login', async (req, res) => {
-    const loginReq = LoginRequestSchema.parse(req.body);
+    const loginReq = validate(LoginRequestSchema, req.body);
     const loginDetails = await loginUser(loginReq);
 
     if (loginDetails) {
@@ -17,7 +19,7 @@ router.post('/login', async (req, res) => {
         throw new AppError({
             code: 'validation_error',
             status: 400,
-            message: 'Validation Error',
+            message: 'Incorrect email or password.',
             data: {
                 errors: [
                     'Incorrect email or password.'
@@ -28,7 +30,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const registerReq = RegisterRequestSchema.parse(req.body);
+    const registerReq = validate(RegisterRequestSchema, req.body);
     const registerDetail = await registerUser(registerReq);
 
     if (registerDetail) {
@@ -37,27 +39,23 @@ router.post('/register', async (req, res) => {
         throw new AppError({
             code: 'validation_error',
             status: 400,
-            message: 'Validation Error',
+            message: 'Failed to register user.',
             data: {
-                errors: [
-                    'Failed to register user.'
-                ]
+                errors: ['Failed to register user.']
             },
         });
     }
 });
 
-/**
- * @param {import('src').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
- */
-const logout = async (req, res) => {
-    if ('all' in req.query) {
-        clearAllRefreshTokens(req.jwtContents.user.userId);
+router.get('/logout', authenticated, async (req, res) => {
+    const authedReq = /** @type {import('../').AuthenticatedRequest} */(req);
+    
+    if ('all' in authedReq.query) {
+        await clearAllRefreshTokens(authedReq.jwtContents.user.userId);
     } else {
-        const refreshToken = req.cookies[config.refreshCookie];
+        const refreshToken = authedReq.cookies[config.refreshCookie];
         if (typeof refreshToken === 'string' && refreshToken) {
-            deleteRefreshToken(req.jwtContents.user.userId, refreshToken);
+            await deleteRefreshToken(authedReq.jwtContents.user.userId, refreshToken);
         }
     }
 
@@ -67,20 +65,21 @@ const logout = async (req, res) => {
     res.send({
         message: 'success',
     });
-};
+});
 
-// @ts-ignore
-router.get('/logout', authenticated, logout);
+router.get('/logout/:userId', requireRole('access_admin'), async (req, res) => {
+    const userId = validate(z.coerce.number().int(), req.params.userId);
+    
+    await clearAllRefreshTokens(userId);
 
-/**
- * @param {import('src').AuthenticatedRequest} req 
- * @param {import('express').Response} res 
- */
-const whoami = async (req, res) => {
-    res.send(req.jwtContents);
-};
+    res.send({
+        message: 'success',
+    });
+});
 
-// @ts-ignore
-router.get('/whoami', authenticated, whoami);
+router.get('/whoami', authenticated, (req, res) => {
+    const authedReq = /** @type {import('../').AuthenticatedRequest} */(req);
+    res.send(authedReq.jwtContents);
+});
 
 export default router;
