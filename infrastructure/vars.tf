@@ -22,12 +22,6 @@ variable "backend_image" {
   default     = ""
 }
 
-variable "frontend_image" {
-  description = "Frontend Docker image URI"
-  type        = string
-  default     = ""
-}
-
 variable "master_key_2fa" {
   description = "Master key for 2FA"
   type        = string

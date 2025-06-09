@@ -17,28 +17,10 @@ resource "aws_cloudwatch_log_group" "backend" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "frontend" {
-  name              = "/ecs/${var.project_name}-${var.environment}-frontend"
-  retention_in_days = 7
-  
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-frontend-logs"
-    Environment = var.environment
-  }
-}
-
 resource "aws_security_group" "ecs_tasks" {
   name        = "${var.project_name}-${var.environment}-ecs-tasks-sg"
   description = "Security group for ECS tasks"
   vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description     = "HTTP from ALB"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
 
   ingress {
     description     = "Backend port from ALB"
@@ -171,48 +153,11 @@ resource "aws_iam_role_policy" "ecs_task_execution_logs" {
         ]
         Resource = [
           aws_cloudwatch_log_group.backend.arn,
-          aws_cloudwatch_log_group.frontend.arn,
-          "${aws_cloudwatch_log_group.backend.arn}:*",
-          "${aws_cloudwatch_log_group.frontend.arn}:*"
+          "${aws_cloudwatch_log_group.backend.arn}:*"
         ]
       }
     ]
   })
-}
-
-resource "aws_ecs_task_definition" "frontend" {
-  family                   = "${var.project_name}-${var.environment}-frontend"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-
-  container_definitions = jsonencode([
-    {
-      name  = "frontend"
-      image = var.frontend_image != "" ? var.frontend_image : "${aws_ecr_repository.frontend.repository_url}:latest"
-      portMappings = [
-        {
-          containerPort = 80
-          protocol      = "tcp"
-        }
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.frontend.name
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    }
-  ])
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-frontend-task"
-    Environment = var.environment
-  }
 }
 
 resource "aws_ecs_service" "backend" {
@@ -242,37 +187,6 @@ resource "aws_ecs_service" "backend" {
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-backend-service"
-    Environment = var.environment
-  }
-}
-
-resource "aws_ecs_service" "frontend" {
-  name            = "${var.project_name}-${var.environment}-frontend"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.public[*].id
-    assign_public_ip = true
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.frontend.arn
-    container_name   = "frontend"
-    container_port   = 80
-  }
-
-  depends_on = [
-    aws_lb_listener.https,
-    aws_lb_listener.http_redirect,
-    aws_iam_role_policy_attachment.ecs_task_execution_role_policy
-  ]
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-frontend-service"
     Environment = var.environment
   }
 }
