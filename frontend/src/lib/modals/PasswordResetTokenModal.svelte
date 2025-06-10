@@ -13,7 +13,7 @@
         close,
     } = $props();
 
-    let resetUrl = getResetToken(userId).then(token => `https://todosecuritylevelup.com/resetpassword?token=${token}&userId=${userId}`);
+    let resetUrl = getResetToken(userId).then(token => `${window.location.origin}/resetpassword?token=${token}&userId=${userId}`);
 </script>
 
 <style>
