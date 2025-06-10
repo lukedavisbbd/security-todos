@@ -1,9 +1,35 @@
 <script>
   import ProfileLogo from '../lib/ProfileLogo.svelte';
   import { userJwtContents } from '../util/stores';
-  
+  import { apiFetch } from '../util/http';
+  import { whoami } from '../util/auth';
+
   let user = $userJwtContents?.user;
   if (!user) throw new Error();
+
+  let emailMessage = '';
+  let emailError = '';
+  let email2fa;
+
+  async function handleEmailUpdate(e) {
+    e.preventDefault();
+    emailMessage = '';
+    emailError = '';
+    const form = e.target;
+    const email = form.email.value.trim();
+    const twoFactor = form.email2fa.value.trim();
+    try {
+      await apiFetch(`/users/${user?.userId}/email`, 'PUT', { email, twoFactor });
+      emailMessage = 'Email updated successfully.';
+      // Refresh user info
+      const jwt = await whoami();
+      userJwtContents.set(jwt);
+      user = jwt.user;
+      email2fa = '';
+    } catch (err) {
+      emailError = err?.errorResponse?.message || err.message || 'Failed to update email.';
+    }
+  }
 </script>
 
 <main>
@@ -28,6 +54,12 @@
   <article>
     <p class="profile-picture-source">Your profile picture is sourced from <a href="https://gravatar.com/" target="_blank">Gravatar</a>.</p>
     <h5>Personal Details</h5>
+    {#if emailMessage}
+        <p class="success">{emailMessage}</p>
+        {/if}
+        {#if emailError}
+          <p class="error">{emailError}</p>
+        {/if}
     <form onsubmit={e => e.preventDefault()}>
       <section class="form-group">
         <label for="name" class="inline">Name</label>
@@ -37,14 +69,19 @@
         <button class="btn btn-dark">Update Name</button>
       </section>
     </form>
-    <form onsubmit={e => e.preventDefault()}>
+    <form onsubmit={handleEmailUpdate}>
       <section class="form-group">
         <label for="email" class="inline">Email Address</label>
-        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required>
+        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required value={user?.email}>
+      </section>
+      <section class="form-group">
+        <label for="email2fa" class="inline">2FA Code</label>
+        <input type="text" name="email2fa" id="email2fa" placeholder="" minlength="6" maxlength="6" required bind:value={email2fa}>
       </section>
       <section class="button-group">
         <button class="btn btn-dark">Update Email</button>
       </section>
+
     </form>
     <h5>Change Password</h5>
     <form onsubmit={e => e.preventDefault()}>
@@ -137,4 +174,7 @@
       }
     }
   }
+
+  .success { color: limegreen; }
+  .error { color: red; }
 </style>

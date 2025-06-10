@@ -369,3 +369,60 @@ export async function getUserById(userId) {
   );
   return UserSchema.optional().parse(result.rows[0]) ?? null;
 }
+
+
+/**
+ * Update a user's email address, verifying 2FA.
+ * @param {number} userId
+ * @param {string} email
+ * @param {string} twoFactor
+ */
+export async function updateUserEmail(userId, email, twoFactor) {
+  // Fetch user info
+  const result = await pool.query(
+    "SELECT user_id, email, two_factor_key FROM users WHERE user_id = $1",
+    [userId]
+  );
+  const user = result.rows[0];
+  if (!user)
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "User not found",
+      data: { errors: ["User not found."] },
+    });
+  
+  const twoFactorKey = await decrypt(user.two_factor_key);
+  if (!twoFactorKey)
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "2FA not set up",
+      data: { errors: ["2FA not set up."] },
+    });
+
+    if (!authenticator.verifyToken(twoFactorKey, twoFactor)) {
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "Invalid 2FA code",
+      data: { errors: ["Invalid 2FA code."] },
+    });
+  }
+  const existing = await pool.query(
+    "SELECT user_id FROM users WHERE email = $1",
+    [email]
+  );
+  if (existing.rows.length > 0) {
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "Email address already taken.",
+      data: { errors: ["Email address already taken."] },
+    });
+  }
+  await pool.query(
+    "UPDATE users SET email = $1, email_verified = false WHERE user_id = $2",
+    [email, userId]
+  );
+}

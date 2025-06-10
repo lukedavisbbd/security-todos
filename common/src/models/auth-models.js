@@ -95,3 +95,10 @@ export const JwtContentsSchema = UserWithRolesSchema;
 /**
  * @typedef {z.infer<typeof JwtContentsSchema>} JwtContents
  */
+
+export const UpdateEmailSchema = z.object({
+    email: z.preprocess(trimUnknown, z.email().max(128, { error: 'Email is too long.' })),
+    twoFactor: z.string()
+        .length(6, { error: '2FA pin must be exactly 6 digits.' })
+        .refine(string => digitRegex.test(string), { error: '2FA pin may only contain digits.' }),
+});
