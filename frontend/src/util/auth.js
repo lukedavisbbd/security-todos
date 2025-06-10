@@ -44,6 +44,15 @@ export const logout = async (logoutAllSessions = false) => {
 };
 
 /**
+ * @param {number} userId
+ * @param {import('common').ResetPasswordRequest} request
+ */
+export const resetPassword = async (userId, request) => {
+    await apiFetch(`/auth/password/reset/${userId}`, 'POST', request);
+    userJwtContents.set(null);
+};
+
+/**
  * @param {string} input
  */
 const hashSha1Hex = async (input) => {

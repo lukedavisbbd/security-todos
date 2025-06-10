@@ -4,6 +4,7 @@
     import Spinner from "./Spinner.svelte";
     import { clickOutside } from "../util/click-outside";
     import { addRole, deleteRole, logoutUser } from "../util/access-control";
+    import PasswordResetTokenModal from "./modals/PasswordResetTokenModal.svelte";
 
     /** @type {{ user: import('common').UserWithRoles, allRoles: string[], onChangeRoles: (newRoles: string[]) => void }} */
     let { user, allRoles, onChangeRoles } = $props();
@@ -12,11 +13,8 @@
     let logoutPromise = $state(null);
     let logoutError = $state('');
 
-    /** @type {Promise<void> | null} */
-    let passwordPromise = $state(null);
-    let passwordError = $state('');
-
     let showAddMenu = $state(false);
+    let showResetPassword = $state(false);
 
     const missingRoles = allRoles.filter(role => !user.roles.includes(role));
 </script>
@@ -157,14 +155,8 @@
     </section>
     <section class="buttons">
         <section>
-            <button class="btn btn-outline">
-                {#if passwordPromise}
-                    <div class="spinner-wrapper">
-                        <Spinner/>
-                    </div>
-                {:else}
-                    <RotateCcwKey/>
-                {/if}
+            <button class="btn btn-outline" onclick={() => showResetPassword = true}>
+                <RotateCcwKey/>
                 Reset Password
             </button>
         </section>
@@ -196,3 +188,7 @@
         </section>
     </section>
 </article>
+
+{#if showResetPassword}
+    <PasswordResetTokenModal userId={user.user.userId} close={() => showResetPassword = false}/>
+{/if}

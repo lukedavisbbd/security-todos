@@ -4,34 +4,20 @@ import { UserSearchQuerySchema } from '../models/queries.js';
 import { AddRoleRequestSchema, AppError } from 'common';
 import { fetchRoles } from '../db/role-queries.js';
 import { validate } from '../utils/validation.js';
+import { requireRole } from '../middleware/auth-middleware.js';
+import z from 'zod/v4';
 
 const router = Router();
 
-router.get('/users', async (req, res) => {
+router.get('/users', requireRole('access_admin'), async (req, res) => {
     const query = UserSearchQuerySchema.parse(req.query);
     const users = await searchUsers(query.search?.trim());
     res.json(users);
 });
 
-router.post('/users/:userId/roles', async (req, res) => {
+router.post('/users/:userId/roles', requireRole('access_admin'), async (req, res) => {
     const { role } = validate(AddRoleRequestSchema, req.body);
-    const userId = parseInt(req.params.userId);
-
-    if (!isFinite(userId)) {
-        throw new AppError({
-            code: 'validation_error',
-            status: 400,
-            message: 'Invalid user ID.',
-            data: {
-                errors: [],
-                properties: {
-                    role: {
-                        errors: ['Invalid user ID.']
-                    }
-                }
-            }
-        });
-    }
+    const userId = validate(z.coerce.number().int(), req.params.userId);
 
     const roles = await fetchRoles();
     
@@ -58,25 +44,9 @@ router.post('/users/:userId/roles', async (req, res) => {
     res.json(userRoles);
 });
 
-router.delete('/users/:userId/roles', async (req, res) => {
+router.delete('/users/:userId/roles', requireRole('access_admin'), async (req, res) => {
     const { role } = validate(AddRoleRequestSchema, req.body);
-    const userId = parseInt(req.params.userId);
-
-    if (!isFinite(userId)) {
-        throw new AppError({
-            code: 'validation_error',
-            status: 400,
-            message: 'Invalid user ID.',
-            data: {
-                errors: [],
-                properties: {
-                    role: {
-                        errors: ['Invalid user ID.']
-                    }
-                }
-            }
-        });
-    }
+    const userId = validate(z.coerce.number().int(), req.params.userId);
 
     const roles = await fetchRoles();
     

@@ -10,6 +10,7 @@
   import Navbar from "./lib/Navbar.svelte";
   import Spinner from "./lib/Spinner.svelte";
   import Profile from "./pages/Profile.svelte";
+  import ResetPassword from "./pages/ResetPassword.svelte";
 
   let authPromise = checkAuth();
 
@@ -33,6 +34,10 @@
     {
       path: "/history/(?<taskId>.*)",
       component: TaskHistory,
+    },
+    {
+      path: "/resetpassword",
+      component: ResetPassword,
     },
     {
       path: "/access",
