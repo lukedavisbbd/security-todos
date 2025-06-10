@@ -1,11 +1,3 @@
-data "aws_secretsmanager_secret_version" "app_secrets" {
-  secret_id = data.aws_secretsmanager_secret.app_secrets.id
-}
-
-locals {
-  secrets = jsondecode(data.aws_secretsmanager_secret_version.app_secrets.secret_string)
-}
-
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-${var.environment}-db-subnet-group"
   subnet_ids = aws_subnet.private[*].id
