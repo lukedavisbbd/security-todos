@@ -3,8 +3,7 @@ import config from './config/config.js';
 import routes from './routes/routes.js';
 import { errorHandler } from './middleware/error-middleware.js';
 import cookieParser from 'cookie-parser';
-import { AppError, rateLimitResponse } from 'common';
-import rateLimit from 'express-rate-limit';
+import { AppError } from 'common';
 
 /**
  * @typedef {(import('express').Request & {
@@ -14,13 +13,6 @@ import rateLimit from 'express-rate-limit';
 
 const app = express();
 
-app.set('trust proxy', 1);
-
-app.use(rateLimit({
-    windowMs: 60_000,
-    limit: 60,
-    message: rateLimitResponse('in one minute'),
-}));
 app.use(cookieParser())
 app.use(express.json());
 
