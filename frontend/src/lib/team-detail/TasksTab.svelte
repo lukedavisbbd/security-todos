@@ -75,36 +75,45 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
+        margin-bottom: clamp(1rem, 3vw, 1.5rem);
         gap: 1rem;
         flex-wrap: wrap;
+    }
+
+    article.task-tab > header h4 {
+        font-size: clamp(1.25rem, 3vw, 1.5rem);
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
     }
 
     .filters {
         background-color: #f8f9fa;
         border: 1px solid #0003;
         border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
+        padding: clamp(0.75rem, 2vw, 1rem);
+        margin-bottom: clamp(1rem, 3vw, 1.5rem);
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: clamp(0.75rem, 2vw, 1rem);
         align-items: center;
+    }
 
-        section {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            min-width: 150px;
-        }
+    .filters section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: clamp(120px, 20vw, 150px);
+        flex: 1;
+    }
 
-        .clear-filters {
-            margin-top: auto;
-        }
+    .filters .clear-filters {
+        margin-top: auto;
+        flex-shrink: 0;
     }
     
     .label {
-        font-size: 0.75rem;
+        font-size: clamp(0.65rem, 1.5vw, 0.75rem);
         font-weight: 500;
         color: #666;
         text-transform: uppercase;
@@ -114,7 +123,7 @@
     .tasks-grid {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: clamp(0.75rem, 2vw, 1rem);
         min-height: 200px;
     }
 
@@ -122,30 +131,36 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 2rem;
+        margin-top: clamp(1.5rem, 3vw, 2rem);
         gap: 1rem;
         flex-wrap: wrap;
     }
 
     .pagination-info {
         color: #666;
-        font-size: 0.875rem;
+        font-size: clamp(0.75rem, 2vw, 0.875rem);
+        order: 1;
     }
 
     .pagination-controls {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: clamp(0.25rem, 1vw, 0.5rem);
+        order: 2;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .page-button {
-        padding: 0.375rem 0.75rem;
+        padding: clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem);
         border: 1px solid #0003;
         background: white;
         border-radius: 0.375rem;
         cursor: pointer;
         transition: all 150ms;
-        font-size: 0.875rem;
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+        min-width: clamp(2rem, 5vw, 2.5rem);
+        text-align: center;
     }
 
     .page-button:hover:not(:disabled) {
@@ -168,38 +183,93 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.875rem;
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
         color: #666;
+        order: 3;
     }
 
     .page-size-select {
-        padding: 0.25rem 0.5rem;
+        padding: clamp(0.125rem, 0.5vw, 0.25rem) clamp(0.25rem, 1vw, 0.5rem);
         border: 1px solid #0003;
         border-radius: 0.25rem;
-        font-size: 0.875rem;
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
     }
 
     .empty-state {
         text-align: center;
-        padding: 3rem 1rem;
+        padding: clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem);
         color: #666;
     }
 
     .empty-state h3 {
-        margin-bottom: 0.5rem;
+        margin-bottom: clamp(0.5rem, 1vw, 0.75rem);
         color: #333;
+        font-size: clamp(1.125rem, 2.5vw, 1.25rem);
     }
 
-    @media (max-width: 48rem) {
+    .empty-state p {
+        font-size: clamp(0.875rem, 2vw, 1rem);
+        line-height: 1.6;
+        max-width: 32rem;
+        margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+        article.task-tab > header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filters {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filters section {
+            min-width: unset;
+        }
+
         .pagination {
             flex-direction: column;
-            align-items: center;
             gap: 1rem;
+            text-align: center;
+        }
+
+        .pagination-info {
+            order: 3;
         }
 
         .pagination-controls {
-            flex-wrap: wrap;
+            order: 1;
             justify-content: center;
+        }
+
+        .page-size-selector {
+            order: 2;
+            justify-content: center;
+        }
+
+        .page-button {
+            min-width: 2.5rem;
+        }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+        .pagination {
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .pagination-info {
+            order: 1;
+        }
+
+        .pagination-controls {
+            order: 2;
+        }
+
+        .page-size-selector {
+            order: 3;
         }
     }
 </style>
@@ -268,8 +338,8 @@
                     <TaskCard {task} {allStatuses} {members} onTaskUpdated={() => tasksPromise = loadTasks()}/>
                 {/each}
             </section>
-            <div class="pagination">
-                <div class="pagination-info">
+            <nav class="pagination" aria-label="Task pagination">
+                <p class="pagination-info">
                     Showing
                     {(paginationInfo.currentPage - 1) * paginationInfo.itemsPerPage + 1}
                     –
@@ -277,20 +347,21 @@
                     of
                     {paginationInfo.totalItems}
                     tasks
-                </div>
+                </p>
                 
-                <div class="pagination-controls">
+                <section class="pagination-controls">
                     <button 
                         class="page-button"
                         disabled={pagination.currentPage <= 1}
                         onclick={() => pagination.currentPage = Math.max(pagination.currentPage - 1, 1)}
+                        aria-label="Go to previous page"
                     >
                         <ChevronLeft/>
-                        Previous
+                        <span class="sr-only">Previous</span>
                     </button>
                     
                     {#if !pageNumbers.includes(1)}
-                        &hellip;
+                        <span aria-hidden="true">&hellip;</span>
                     {/if}
                     
                     {#each pageNumbers as page}
@@ -298,28 +369,32 @@
                             class="page-button"
                             class:active={page === pagination.currentPage}
                             onclick={() => pagination.currentPage = page}
+                            aria-label="Go to page {page}"
+                            aria-current={page === pagination.currentPage ? 'page' : undefined}
                         >
                             {page}
                         </button>
                     {/each}
                     
                     {#if !pageNumbers.includes(paginationInfo.totalPages)}
-                        &hellip;
+                        <span aria-hidden="true">&hellip;</span>
                     {/if}
                     
                     <button 
                         class="page-button"
                         disabled={pagination.currentPage >= paginationInfo.totalPages}
                         onclick={() => pagination.currentPage = Math.min(pagination.currentPage + 1, paginationInfo.totalPages)}
+                        aria-label="Go to next page"
                     >
-                        Next
                         <ChevronRight/>
+                        <span class="sr-only">Next</span>
                     </button>
-                </div>
+                </section>
                 
-                <div class="page-size-selector">
-                    <span>Per page:</span>
+                <section class="page-size-selector">
+                    <label for="page-size">Per page:</label>
                     <select 
+                        id="page-size"
                         class="page-size-select"
                         bind:value={pagination.itemsPerPage}
                     >
@@ -328,8 +403,8 @@
                         <option value={25}>25</option>
                         <option value={50}>50</option>
                     </select>
-                </div>
-            </div>
+                </section>
+            </nav>
         {/if}
         {#if showCreateTask}
             <CreateTaskModal 
