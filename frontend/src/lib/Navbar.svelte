@@ -13,21 +13,6 @@
 </script>
 
 <style>
-  .skip-link {
-    position: absolute;
-    top: -40px;
-    left: 6px;
-    background: #000;
-    color: #fff;
-    padding: 8px;
-    text-decoration: none;
-    z-index: 1000;
-    border-radius: 4px;
-  }
-
-  .skip-link:focus {
-    top: 6px;
-  }
 
   nav[role="banner"] {
     display: flex;
@@ -95,7 +80,6 @@
   }
 </style>
 
-<a href="#main-content" class="skip-link">Skip to main content</a>
 
 <nav role="banner" aria-label="Main navigation">
   <a href="/" use:route class="brand" aria-label="To-Do App - Go to homepage">
