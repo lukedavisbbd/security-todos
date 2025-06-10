@@ -38,6 +38,10 @@ CREATE TABLE "statuses" (
     "status_name" VARCHAR(32) UNIQUE NOT NULL
 );
 
+INSERT INTO statuses (status_name) VALUES
+    ('open'), ('closed'), ('todo'),
+    ('in-progress'), ('discarded');
+
 CREATE TABLE "tasks" (
     "task_id" SERIAL PRIMARY KEY,
     "team_id" INTEGER NOT NULL REFERENCES "teams" ("team_id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -59,4 +63,11 @@ CREATE TABLE "user_teams" (
     "user_id" INTEGER REFERENCES "users" ("user_id") ON DELETE CASCADE ON UPDATE CASCADE,
     "team_id" INTEGER REFERENCES "teams" ("team_id") ON DELETE CASCADE ON UPDATE CASCADE,
     PRIMARY KEY ("user_id", "team_id")
+);
+
+CREATE TABLE "password_reset_tokens" (
+    "user_id" INTEGER REFERENCES "users" ("user_id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "reset_token" VARCHAR(128),
+    "expiry" TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '1 DAY'),
+    PRIMARY KEY ("user_id", "reset_token")
 );
