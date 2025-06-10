@@ -56,7 +56,7 @@
   const performResetPassword = async (request) => {
     try {
       await resetPassword(userId, request);
-      goto('/?signin');
+      goto('/');
     } catch (err) {
       if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
         passwordErrors = err.errorResponse.data;
