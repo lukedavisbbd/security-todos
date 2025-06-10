@@ -52,6 +52,7 @@ jobs:
         echo "BACKEND_ECR_URL=$(terraform output -raw backend_ecr_repository_url)" >> $GITHUB_ENV
         echo "S3_BUCKET=$(terraform output -raw s3_bucket_name)" >> $GITHUB_ENV
         echo "CLOUDFRONT_ID=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_ENV
+        echo "APP_URL=$(terraform output -raw app_url)" >> $GITHUB_ENV
 
     - name: Set image tag
       run: |
@@ -115,8 +116,7 @@ jobs:
     - name: Get deployment info
       working-directory: ./infrastructure
       run: |
-        CLOUDFRONT_DOMAIN=$(terraform output -raw cloudfront_domain_name)
-        echo "Deployed at: https://todosecuritylevelup.com"
-        echo "CloudFront domain: https://$CLOUDFRONT_DOMAIN"
-        echo "API: https://todosecuritylevelup.com/api/"
+        echo "Deployment Complete!"
+        echo "App URL: ${{ env.APP_URL }}"
+        echo "API URL: ${{ env.APP_URL }}/api/"
         echo "Backend image tag: ${{ env.IMAGE_TAG }}"
