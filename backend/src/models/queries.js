@@ -9,7 +9,7 @@ export const UserSearchQuerySchema = z.object({
  */
 
 export const TaskSearchQuerySchema = z.object({
-    userId: z.coerce.number().int().nullable().optional(),
+    userId: z.coerce.number().int().or(z.literal('null').transform(() => null)).nullable().optional(),
     statusId: z.coerce.number().int().optional(),
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().lte(100).optional(),
