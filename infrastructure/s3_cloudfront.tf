@@ -1,8 +1,8 @@
 resource "aws_s3_bucket" "frontend" {
-  bucket = "${var.project_name}-${var.environment}-frontendnew"
+  bucket = "${var.project_name}-${var.environment}-frontend-clean"
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-frontendnew"
+    Name        = "${var.project_name}-${var.environment}-frontend"
     Environment = var.environment
   }
 }
@@ -55,7 +55,7 @@ resource "aws_cloudfront_distribution" "main" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = "http-only"  # ALB only serves HTTP
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -65,9 +65,11 @@ resource "aws_cloudfront_distribution" "main" {
   default_root_object = "index.html"
 
   default_cache_behavior {
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "s3-origin"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-origin"
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
       query_string = false
@@ -76,30 +78,30 @@ resource "aws_cloudfront_distribution" "main" {
       }
     }
 
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
+    min_ttl     = 0
+    default_ttl = 3600
+    max_ttl     = 86400
   }
 
   ordered_cache_behavior {
-    path_pattern     = "/api/*"
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id = "api-origin"
+    path_pattern           = "/api/*"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id       = "api-origin"
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
       query_string = true
-      headers      = ["Authorization", "Content-Type", "Accept", "Origin"]
+      headers      = ["*"]
       cookies {
         forward = "all"
       }
     }
 
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 0
-    max_ttl                = 0
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
   }
 
   custom_error_response {

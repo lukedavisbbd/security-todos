@@ -64,6 +64,26 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_secrets_policy" {
+  name = "${var.project_name}-${var.environment}-ecs-secrets"
+  role = aws_iam_role.ecs_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          data.aws_secretsmanager_secret.app_secrets.arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_ecs_task_definition" "backend" {
   family                   = "${var.project_name}-${var.environment}-backend"
   network_mode             = "awsvpc"
@@ -89,7 +109,7 @@ resource "aws_ecs_task_definition" "backend" {
           value = "3000"
         },
         {
-          name  = "ENVIRONMENT"
+          name  = "NODE_ENV"
           value = var.environment
         },
         {
@@ -138,28 +158,6 @@ resource "aws_ecs_task_definition" "backend" {
   }
 }
 
-resource "aws_iam_role_policy" "ecs_task_execution_logs" {
-  name = "${var.project_name}-${var.environment}-ecs-task-execution-logs"
-  role = aws_iam_role.ecs_task_execution_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = [
-          aws_cloudwatch_log_group.backend.arn,
-          "${aws_cloudwatch_log_group.backend.arn}:*"
-        ]
-      }
-    ]
-  })
-}
-
 resource "aws_ecs_service" "backend" {
   name            = "${var.project_name}-${var.environment}-backend"
   cluster         = aws_ecs_cluster.main.id
@@ -180,8 +178,7 @@ resource "aws_ecs_service" "backend" {
   }
 
   depends_on = [
-    aws_lb_listener.https,
-    aws_lb_listener.http_redirect,
+    aws_lb_listener.http,
     aws_iam_role_policy_attachment.ecs_task_execution_role_policy
   ]
 
