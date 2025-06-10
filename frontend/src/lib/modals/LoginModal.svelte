@@ -39,7 +39,7 @@
                 );
             } else {
                 loginErrors = {
-                    errors: ['Failed to sign in.'],
+                    errors: [err?.message || 'Failed to sign in.'],
                 }
             }
         }
@@ -64,8 +64,8 @@
     let loginErrors = $state(null);
 
     /** @type {HTMLFormElement} */
-    // svelte-ignore non_reactive_update
-    let form;
+    // @ts-ignore
+    let form = $state();
 </script>
 
 <style>

@@ -37,7 +37,7 @@ const decrypt = async (text) => {
     return textDecrypted;
 }
 
-const generateRefreshToken = () => {
+const generateHexToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
 
@@ -180,7 +180,7 @@ export const loginWithToken = async (userId, refreshToken) => {
     const oldTokenHash = userInfo.refreshTokenHash;
     await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1 AND refresh_token = $2', [userId, oldTokenHash]);
 
-    const newToken = generateRefreshToken();
+    const newToken = generateHexToken();
     const newTokenHash = await bcrypt.hash(newToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userId, newTokenHash]);
 
@@ -220,7 +220,7 @@ export const loginUser = async (request) => {
     if (!userInfo)
         return null;
 
-    const refreshToken = generateRefreshToken();
+    const refreshToken = generateHexToken();
     const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
 
@@ -303,7 +303,7 @@ export const registerUser = async (request) => {
         throw error;
     }
 
-    const refreshToken = generateRefreshToken();
+    const refreshToken = generateHexToken();
     const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
     await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
 
@@ -357,10 +357,87 @@ export const changePassword = async (userId, request) => {
 };
 
 /**
+ * @param {number} userId 
+ */
+export const insertPasswordResetToken = async (userId) => {
+    const resetToken = generateHexToken();
+    const resetTokenHash = await bcrypt.hash(resetToken, saltRounds);
+
+    await pool.query('INSERT INTO password_reset_tokens (user_id, reset_token) VALUES ($1, $2)', [userId, resetTokenHash]);
+
+    return resetToken;
+}
+
+/**
+ * Returns true if successfully changed password,
+ * returns false if failed to change password because 'user not found or password is incorrect'.
+ * @param {number} userId
+ * @param {import('common').ResetPasswordRequest} request
+ */
+export const resetPassword = async (userId, request) => {
+    const userResult = await pool.query(
+        'SELECT user_id, email, name, password, email_verified, two_factor_key FROM users WHERE user_id = $1',
+        [userId]
+    );
+    const userRow = userResult.rows[0];
+    const userInfo = userRow ? mapRowToUserInfo(userRow) : null;
+
+    if (!userInfo)
+        return false;
+    
+    const resetTokenResult = await pool.query(
+        'SELECT reset_token FROM password_reset_tokens WHERE user_id = $1 AND expiry > NOW()',
+        [userId]
+    );
+    const hashedTokens = z.string().array().parse(resetTokenResult.rows.map(row => row.reset_token));
+
+    const twoFactorKey = await decrypt(userInfo.twoFactorKeyEncrypted);
+
+    if (!twoFactorKey) {
+        throw new AppError();
+    }
+
+    // verify reset token
+    const tokenPromises = hashedTokens.map(async (hashedToken) => {
+        return {
+            hashedToken,
+            matches: await bcrypt.compare(request.resetToken, hashedToken),
+        };
+    });
+
+    const tokenMatch = (await Promise.all(tokenPromises)).find(tm => tm.matches);
+
+    if (!tokenMatch)
+        return false;
+
+    // verify 2FA
+    if (!authenticator.verifyToken(twoFactorKey, request.twoFactor))
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'Failed two factor authentication.',
+            data: {
+                errors: ['Failed two factor authentication.']
+            }
+        });
+
+    const { hashedToken } = tokenMatch;
+    await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND reset_token = $2', [userId, hashedToken]);
+    
+    const newPasswordHash = await bcrypt.hash(request.newPassword, saltRounds);
+    await pool.query('UPDATE users SET password = $1 WHERE user_id = $2', [newPasswordHash, userInfo.userId]);
+
+    // logout user
+    await clearAllRefreshTokens(userId);
+
+    return true;
+};
+
+/**
  * Get a user record (user_id, email) by its numeric ID.
  * @param {number} userId
  */
-export async function getUserById(userId) {
+export const getUserById = async (userId) => {
   const result = await pool.query(
     `SELECT user_id AS userId, email, name, email_verified as emailVerified
     FROM users
@@ -368,6 +445,27 @@ export async function getUserById(userId) {
     [userId]
   );
   return UserSchema.optional().parse(result.rows[0]) ?? null;
+}
+
+/**
+ * Update user's name
+ * @param {number} userId
+ * @param {string} name
+ */
+export async function updateUserName(userId, name) {
+    const result = await pool.query(
+        'UPDATE users SET name = $1 WHERE user_id = $2',
+        [name.trim(), userId]
+    );
+    
+    if (result.rowCount === 0) {
+        throw new AppError({
+            code: 'not_found',
+            status: 404,
+            message: 'User not found.',
+            data: undefined,
+        });
+    }
 }
 
 
