@@ -13,58 +13,127 @@
 </script>
 
 <style>
-  nav {
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 1000;
+    border-radius: 4px;
+  }
+
+  .skip-link:focus {
+    top: 6px;
+  }
+
+  nav[role="banner"] {
     display: flex;
     padding: 0.75rem 2rem;
     box-shadow: 0 0.25rem 0.25rem #0001;
     justify-content: space-between;
     align-items: center;
-
-    > h1 a {
-      color: inherit;
-    }
-
-    .open-menu-button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .login-btns {
-      display: flex;
-      gap: 1rem;
-    }
+    background: white;
+    position: relative;
   }
 
-  h1 {
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 1.75rem;
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .brand:hover {
+    color: inherit;
+  }
+
+  .user-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .profile-menu-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: background-color 150ms;
+  }
+
+  .profile-menu-button:hover {
+    background-color: #f5f5f5;
+  }
+
+  .auth-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  @media (max-width: 768px) {
+    nav[role="banner"] {
+      padding: 0.75rem 1rem;
+    }
+
+    .brand {
+      font-size: 1.5rem;
+    }
+
+    .auth-actions {
+      gap: 0.5rem;
+    }
   }
 </style>
 
-<nav>
-  <h1>
-    <a href="/" use:route>
-      <NotebookPen/>
-      To-Do
-    </a>
-  </h1>
-  <div>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<nav role="banner" aria-label="Main navigation">
+  <a href="/" use:route class="brand" aria-label="To-Do App - Go to homepage">
+    <NotebookPen aria-hidden="true"/>
+    <span>To-Do</span>
+  </a>
+  
+  <section class="user-actions">
     {#if $userJwtContents}
-      <button class="open-menu-button" onclick={() => showMenu = true} aria-label="open menu">
-        <ChevronDown/>
+      <button 
+        class="profile-menu-button" 
+        onclick={() => showMenu = true} 
+        aria-label="Open user menu for {$userJwtContents.user.name}"
+        aria-expanded={showMenu}
+        aria-haspopup="menu"
+      >
+        <ChevronDown aria-hidden="true"/>
         <ProfileLogo email={$userJwtContents.user.email} name={$userJwtContents.user.name}/>
       </button>
     {:else}
-      <div class="login-btns">
-        <button class="btn" onclick={() => showLogin = true}>
+      <nav class="auth-actions" aria-label="Authentication">
+        <button 
+          class="btn" 
+          onclick={() => showLogin = true}
+          aria-label="Sign in to your account"
+        >
           Sign In
         </button>
-        <button class="btn btn-outline" onclick={() => showRegister = true}>
+        <button 
+          class="btn btn-outline" 
+          onclick={() => showRegister = true}
+          aria-label="Create new account"
+        >
           Register
         </button>
-      </div>
+      </nav>
     {/if}
-  </div>
+  </section>
 </nav>
 
 {#if showLogin}

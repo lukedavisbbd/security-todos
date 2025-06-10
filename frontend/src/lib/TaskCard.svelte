@@ -73,61 +73,67 @@
             gap: 1rem;
             flex-wrap: wrap;
 
-            section {
+            nav {
                 display: flex;
                 gap: 1rem;
                 flex-wrap: wrap;
             }
         }
 
-        .actions {
+        .task-controls {
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
-            
-            section {
-                display: flex;
-                flex-direction: column;
-            }
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-description {
+            margin-top: 0.5rem;
         }
     }
 </style>
 
 <article>
     <header>
-        <h5>{task.taskName}</h5>
-        <section>
+        <h3>{task.taskName}</h3>
+        <nav aria-label="Task actions">
             <a
                 class="btn btn-outline" 
                 href="/history/{task.taskId}"
                 use:route
+                aria-label="View task history"
             >
                 <History/>
                 History
             </a>
             <button 
                 class="btn btn-outline" 
-                title="Edit Task Details"
                 onclick={() => showEditTask = true}
+                aria-label="Edit task details"
             >
                 <Edit/>
                 Edit
             </button>
-        </section>
+        </nav>
     </header>
 
-    <section class="actions">
-        <section>
-            <label class="label" for="assigned-{task.taskId}">
+    <section class="task-controls" aria-label="Task assignment and status controls">
+        <fieldset class="control-group">
+            <legend class="label">
                 Assigned to:
                 {#if assignLoading}
                     <Spinner/>
                 {/if}
-            </label>
+            </legend>
             <select 
                 id="assigned-{task.taskId}"
                 bind:value={task.assignedToId}
                 onchange={() => assignTask(task)}
+                aria-describedby={assignError ? `assign-error-${task.taskId}` : undefined}
             >
                 <option value={null}>Unassigned</option>
                 {#each members as member (member.userId)}
@@ -135,39 +141,41 @@
                 {/each}
             </select>
             {#if assignError}
-                <p class="error">
+                <p class="error" id="assign-error-{task.taskId}" role="alert">
                     {assignError}
                 </p>
             {/if}
-        </section>
-        <section>
-            <label class="label" for="status-{task.taskId}">
+        </fieldset>
+        
+        <fieldset class="control-group">
+            <legend class="label">
                 Status:
                 {#if statusLoading}
                     <Spinner/>
                 {/if}
-            </label>
+            </legend>
             <select
                 id="status-{task.taskId}"
                 class="status-select"
                 bind:value={task.statusId}
                 onchange={() => updateStatus(task)}
+                aria-describedby={statusError ? `status-error-${task.taskId}` : undefined}
             >
                 {#each allStatuses as status (status.statusId)}
                     <option value={status.statusId}>{status.statusName}</option>
                 {/each}
             </select>
             {#if statusError}
-                <p class="error">
+                <p class="error" id="status-error-{task.taskId}" role="alert">
                     {statusError}
                 </p>
             {/if}
-        </section>
+        </fieldset>
     </section>
 
     {#if task.taskContent}
-        <section>
-            <p class="label">Description:</p>
+        <section class="task-description">
+            <h4>Description:</h4>
             <p>{task.taskContent}</p>
         </section>
     {/if}

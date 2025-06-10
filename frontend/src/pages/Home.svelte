@@ -168,7 +168,7 @@
           <Users class="full"/>
         </div>
         <h3>Team Collaboration</h3>
-        <p>Create teams and invite members to work together on shared goals.</p>
+        <p>Create teams and add members to work together on shared goals.</p>
       </div>
       <div class="feature">
         <div class="feature-icon">
