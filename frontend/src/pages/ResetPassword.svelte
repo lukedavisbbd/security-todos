@@ -109,7 +109,7 @@
         <section class="password-wrapper">
           <label for="password" class="inline">New Password</label>
           <input bind:value={password} type={showPassword ? 'text' : 'password'} name="password" id="password" placeholder="" min="1" maxlength="128" required>
-          <button class="show-password-button" onclick={(e) => {
+          <button type="button" class="show-password-button" onclick={(e) => {
             e.preventDefault();
             showPassword = !showPassword;
           }}>
