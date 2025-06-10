@@ -10,7 +10,7 @@ import z from 'zod/v4';
 
 const router = Router();
 
-router.get('/users', requireRole('access_admin'), async (req, res) => {
+router.get('/users', authenticated, async (req, res) => {
     const query = UserSearchQuerySchema.parse(req.query);
     const users = await searchUsers(query.search?.trim());
     res.json(users);
