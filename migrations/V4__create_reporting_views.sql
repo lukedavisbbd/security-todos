@@ -131,10 +131,3 @@ LEFT JOIN tasks t ON tm.team_id = t.team_id
 LEFT JOIN statuses s ON t.status_id = s.status_id
 GROUP BY tm.team_id, tm.team_name, tm.team_owner_id, owner.name
 ORDER BY tm.team_name;
-
-
-
-drop view team_member_overall_stats;
-drop view team_member_task_summary;
-drop view team_overview_stats;
-drop view team_task_status_summary;
