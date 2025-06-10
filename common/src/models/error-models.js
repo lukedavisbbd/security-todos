@@ -11,19 +11,6 @@ export const UNEXPECTED_ERROR_RESPONSE = {
 };
 
 /**
- * @param {string} period
- * @returns {ErrorResponse}
- */
-export const rateLimitResponse = (period = 'later') => {
-    return {
-        code: 'rate_limited',
-        status: 429,
-        message: `Too many requests, please wait and try again ${period}.`,
-        data: undefined,
-    };
-};
-
-/**
  * @typedef {(
  *     'internal_server_error' |
  *     'validation_error' |
@@ -31,8 +18,7 @@ export const rateLimitResponse = (period = 'later') => {
  *     'not_found' |
  *     'unprocessable_content' |
  *     'not_logged_in' |
- *     'missing_role' |
- *     'rate_limited'
+ *     'missing_role'
  * )} ErrorCode
  */
 
@@ -76,7 +62,6 @@ export class AppError extends Error {
  *     ErrorResponseType<'not_found', 404> |
  *     ErrorResponseType<'unprocessable_content', 422> |
  *     ErrorResponseType<'not_logged_in', 401> |
- *     ErrorResponseType<'missing_role', 403> |
- *     ErrorResponseType<'rate_limited', 429>
+ *     ErrorResponseType<'missing_role', 403>
  * )} ErrorResponse
  */
