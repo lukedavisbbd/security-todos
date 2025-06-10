@@ -1,9 +1,11 @@
 <script>
   import ProfileLogo from '../lib/ProfileLogo.svelte';
   import { userJwtContents } from '../util/stores';
+  import ChangePasswordModal from '../lib/modals/ChangePasswordModal.svelte';
   
   let user = $userJwtContents?.user;
   if (!user) throw new Error();
+  let showChange = false;
 </script>
 
 <main>
@@ -57,7 +59,9 @@
         <input type="password" name="new-password" id="new-password" placeholder="" min="1" maxlength="128" required>
       </section>
       <section class="button-group">
-        <button class="btn btn-dark">Change Password</button>
+        <!-- <button class="btn btn-dark">Change Password</button> -->
+        <button class="btn btn-secondary" onclick={() => showChange = true}>Change Password</button>
+        <ChangePasswordModal on:close={() => (showChange = false)} />
       </section>
     </form>
   </article>
