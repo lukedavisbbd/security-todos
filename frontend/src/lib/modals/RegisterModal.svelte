@@ -279,7 +279,7 @@
                         {#if registrationErrors?.properties?.password?.errors?.at(0)}
                             <p class="error">{registrationErrors.properties.password.errors[0]}</p>
                         {/if}
-                        <button class="show-password-button" onclick={(e) => {
+                        <button type="button" class="show-password-button" onclick={(e) => {
                             e.preventDefault();
                             showPassword = !showPassword;
                         }}>

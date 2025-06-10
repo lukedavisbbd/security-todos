@@ -1,11 +1,15 @@
 <script>
   import ProfileLogo from '../lib/ProfileLogo.svelte';
+  import Spinner from '../lib/Spinner.svelte';
   import { userJwtContents } from '../util/stores';
   import ChangePasswordModal from '../lib/modals/ChangePasswordModal.svelte';
+  import { updateUserName } from '../util/user';
+  import { UpdateUserNameSchema } from 'common';
+  import { z } from 'zod/v4';
+  import { ApiError } from '../util/http';
   
   let user = $userJwtContents?.user;
   if (!user) throw new Error();
-  let showChange = false;
 </script>
 
 <main>
@@ -30,13 +34,66 @@
   <article>
     <p class="profile-picture-source">Your profile picture is sourced from <a href="https://gravatar.com/" target="_blank">Gravatar</a>.</p>
     <h5>Personal Details</h5>
-    <form onsubmit={e => e.preventDefault()}>
+    <form onsubmit={async (e) => {
+      e.preventDefault();
+      
+      nameForm.isSubmitting = true;
+      nameForm.errors = null;
+      
+      const request = UpdateUserNameSchema.safeParse({
+        name: nameForm.name,
+      });
+      
+      if (request.error) {
+        nameForm.errors = z.treeifyError(request.error);
+        nameForm.isSubmitting = false;
+        return;
+      }
+      
+      try {
+        await updateUserName(request.data.name);
+        user.name = request.data.name;
+        nameForm.isSubmitting = false;
+      } catch (err) {
+        nameForm.isSubmitting = false;
+        if (err instanceof ApiError && err.errorResponse.code === 'validation_error') {
+          nameForm.errors = err.errorResponse.data;
+        } else {
+          nameForm.errors = {
+            errors: [err?.message || 'Failed to update name.']
+          };
+        }
+      }
+    }}>
       <section class="form-group">
         <label for="name" class="inline">Name</label>
-        <input type="text" name="name" id="name" placeholder="" minlength="1" maxlength="64" required>
+        <input 
+          type="text" 
+          name="name" 
+          id="name" 
+          placeholder="" 
+          bind:value={nameForm.name}
+          minlength="1" 
+          maxlength="64" 
+          required
+          disabled={nameForm.isSubmitting}
+        >
+        {#if nameForm.errors?.errors?.at(0)}
+          <p class="error">{nameForm.errors.errors[0]}</p>
+        {/if}
+        {#if nameForm.errors?.properties?.name?.errors?.at(0)}
+          <p class="error">{nameForm.errors.properties.name.errors[0]}</p>
+        {/if}
       </section>
       <section class="button-group">
-        <button class="btn btn-dark">Update Name</button>
+        <button class="btn btn-dark" disabled={nameForm.isSubmitting}>
+          {#if nameForm.isSubmitting}
+            <Spinner/>
+            Updating...
+          {:else}
+            Update Name
+          {/if}
+        </button>
       </section>
     </form>
     <form onsubmit={e => e.preventDefault()}>

@@ -3,11 +3,24 @@ import { z } from 'zod/v4';
 /**
  * @type {ErrorResponse}
  */
-export const unexpectedErrorResponse = {
+export const UNEXPECTED_ERROR_RESPONSE = {
     code: 'internal_server_error',
     status: 500,
     message: 'An unexpected error has occurred.',
     data: undefined,
+};
+
+/**
+ * @param {string} period
+ * @returns {ErrorResponse}
+ */
+export const rateLimitResponse = (period = 'later') => {
+    return {
+        code: 'rate_limited',
+        status: 429,
+        message: `Too many requests, please wait and try again ${period}.`,
+        data: undefined,
+    };
 };
 
 /**
@@ -18,7 +31,8 @@ export const unexpectedErrorResponse = {
  *     'not_found' |
  *     'unprocessable_content' |
  *     'not_logged_in' |
- *     'missing_role'
+ *     'missing_role' |
+ *     'rate_limited'
  * )} ErrorCode
  */
 
@@ -36,8 +50,8 @@ export class AppError extends Error {
             super(error.message);
             this.response = error;
         } else {
-            super(unexpectedErrorResponse.message);
-            this.response = unexpectedErrorResponse;
+            super(UNEXPECTED_ERROR_RESPONSE.message);
+            this.response = UNEXPECTED_ERROR_RESPONSE;
         }
     }
 }
@@ -62,6 +76,7 @@ export class AppError extends Error {
  *     ErrorResponseType<'not_found', 404> |
  *     ErrorResponseType<'unprocessable_content', 422> |
  *     ErrorResponseType<'not_logged_in', 401> |
- *     ErrorResponseType<'missing_role', 403>
+ *     ErrorResponseType<'missing_role', 403> |
+ *     ErrorResponseType<'rate_limited', 429>
  * )} ErrorResponse
  */

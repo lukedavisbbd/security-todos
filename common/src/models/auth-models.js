@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 
 const digitRegex = /^[0-9]*$/;
+const hexRegex = /^[a-fA-F0-9]*$/;
 
 /** @param {unknown} value */
 const trimUnknown = (value) => typeof value === 'string' ? value.trim() : value;
@@ -70,6 +71,26 @@ export const ChangePasswordRequestSchema = z.object({
  * @typedef {z.infer<typeof ChangePasswordRequestSchema>} ChangePasswordRequest
  */
 
+export const ResetPasswordRequestSchema = z.object({
+    resetToken: z.preprocess(trimUnknown,
+        z.string()
+        .length(64, { error: 'Reset token must be exactly 64 characters characters.' })
+        .refine(string => hexRegex.test(string), { error: 'Reset token may only contain hexadecimal characters.' }),
+    ),
+    newPassword: z.preprocess(trimUnknown,
+        z.string()
+        .min(12, { error: 'Password must be at least 12 characters long.' })
+        .max(128, { error: 'Password is too long.' })
+    ),
+    twoFactor: z.string()
+        .length(6, { error: '2FA pin must be exactly 6 digits.' })
+        .refine(string => digitRegex.test(string), { error: '2FA pin may only contain digits.' }),
+});
+
+/**
+ * @typedef {z.infer<typeof ResetPasswordRequestSchema>} ResetPasswordRequest
+ */
+
 export const UserSchema = z.object({
     userId: z.number(),
     email: z.email(),
@@ -94,4 +115,16 @@ export const JwtContentsSchema = UserWithRolesSchema;
 
 /**
  * @typedef {z.infer<typeof JwtContentsSchema>} JwtContents
+ */
+
+export const UpdateUserNameSchema = z.object({
+    name: z.preprocess(trimUnknown,
+        z.string()
+        .nonempty({ error: 'Name may not be empty.' })
+        .max(64, { error: 'Name is too long.' })
+    ),
+});
+
+/**
+ * @typedef {z.infer<typeof UpdateUserNameSchema>} UpdateUserNameRequest
  */

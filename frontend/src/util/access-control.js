@@ -43,3 +43,11 @@ export const deleteRole = async (userId, role) => {
 export const logoutUser = async (userId) => {
     await apiFetch(`/auth/logout/${userId}`);
 };
+
+/**
+ * @param {number} userId
+ */
+export const getResetToken = async (userId) => {
+    const token = await apiFetch(`/auth/password/reset/${userId}`);
+    return z.string().parse(token);
+};

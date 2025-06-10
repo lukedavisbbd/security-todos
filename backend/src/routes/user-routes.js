@@ -1,38 +1,24 @@
 import { Router } from 'express';
-import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers, changePassword, clearAllRefreshTokens } from '../db/user-queries.js';
+import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers, updateUserName, changePassword } from '../db/user-queries.js';
 import { UserSearchQuerySchema } from '../models/queries.js';
-import { AddRoleRequestSchema, AppError, ChangePasswordRequestSchema } from 'common';
+import { authenticated } from '../middleware/auth-middleware.js';
+import { AddRoleRequestSchema, AppError, UpdateUserNameSchema, ChangePasswordRequestSchema } from 'common';
 import { fetchRoles } from '../db/role-queries.js';
 import { validate } from '../utils/validation.js';
-import { authenticated } from '../middleware/auth-middleware.js';
+import { requireRole } from '../middleware/auth-middleware.js';
+import z from 'zod/v4';
 
 const router = Router();
 
-router.get('/users', async (req, res) => {
+router.get('/users', requireRole('access_admin'), async (req, res) => {
     const query = UserSearchQuerySchema.parse(req.query);
     const users = await searchUsers(query.search?.trim());
     res.json(users);
 });
 
-router.post('/users/:userId/roles', async (req, res) => {
+router.post('/users/:userId/roles', requireRole('access_admin'), async (req, res) => {
     const { role } = validate(AddRoleRequestSchema, req.body);
-    const userId = parseInt(req.params.userId);
-
-    if (!isFinite(userId)) {
-        throw new AppError({
-            code: 'validation_error',
-            status: 400,
-            message: 'Invalid user ID.',
-            data: {
-                errors: [],
-                properties: {
-                    role: {
-                        errors: ['Invalid user ID.']
-                    }
-                }
-            }
-        });
-    }
+    const userId = validate(z.coerce.number().int(), req.params.userId);
 
     const roles = await fetchRoles();
     
@@ -59,25 +45,9 @@ router.post('/users/:userId/roles', async (req, res) => {
     res.json(userRoles);
 });
 
-router.delete('/users/:userId/roles', async (req, res) => {
+router.delete('/users/:userId/roles', requireRole('access_admin'), async (req, res) => {
     const { role } = validate(AddRoleRequestSchema, req.body);
-    const userId = parseInt(req.params.userId);
-
-    if (!isFinite(userId)) {
-        throw new AppError({
-            code: 'validation_error',
-            status: 400,
-            message: 'Invalid user ID.',
-            data: {
-                errors: [],
-                properties: {
-                    role: {
-                        errors: ['Invalid user ID.']
-                    }
-                }
-            }
-        });
-    }
+    const userId = validate(z.coerce.number().int(), req.params.userId);
 
     const roles = await fetchRoles();
     
@@ -102,6 +72,18 @@ router.delete('/users/:userId/roles', async (req, res) => {
     const userRoles = await fetchUserRoles(userId);
     
     res.json(userRoles);
+});
+
+/**
+ * Update user's name
+ */
+router.put('/users/profile/name', authenticated, async (req, res) => {
+    const authedReq = /** @type {import('../').AuthenticatedRequest} */(req);
+    const currentUserId = authedReq.jwtContents.user.userId;
+    const { name } = validate(UpdateUserNameSchema, req.body);
+
+    await updateUserName(currentUserId, name);
+    res.json({ message: 'Name updated successfully' });
 });
 
 router.put('/users/profile/change-password', authenticated, async (req, res) => {

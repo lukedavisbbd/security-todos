@@ -1,12 +1,21 @@
-import { AppError, LoginRequestSchema, RegisterRequestSchema } from 'common';
+import { AppError, LoginRequestSchema, rateLimitResponse, RegisterRequestSchema, ResetPasswordRequestSchema } from 'common';
 import { Router } from 'express';
-import { clearAllRefreshTokens, deleteRefreshToken, loginUser, registerUser } from '../db/user-queries.js';
+import { clearAllRefreshTokens, deleteRefreshToken, insertPasswordResetToken, loginUser, registerUser, resetPassword } from '../db/user-queries.js';
 import { authenticated, requireRole, setAuthCookies } from '../middleware/auth-middleware.js';
 import config from '../config/config.js';
 import { validate } from '../utils/validation.js';
 import z from 'zod/v4';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// stricter rate limiting on auth routes
+// 10 requests / minute
+router.use(rateLimit({
+    windowMs: 60 * 1000,
+    limit: 10,
+    message: rateLimitResponse('in one minute'),
+}));
 
 router.post('/login', async (req, res) => {
     const loginReq = validate(LoginRequestSchema, req.body);
@@ -80,6 +89,36 @@ router.get('/logout/:userId', requireRole('access_admin'), async (req, res) => {
 router.get('/whoami', authenticated, (req, res) => {
     const authedReq = /** @type {import('../').AuthenticatedRequest} */(req);
     res.send(authedReq.jwtContents);
+});
+
+router.get('/password/reset/:userId', requireRole('access_admin'), async (req, res) => {
+    const userId = validate(z.coerce.number().int(), req.params.userId);
+    const resetToken = await insertPasswordResetToken(userId);
+    res.json(resetToken);
+});
+
+router.post('/password/reset/:userId', async (req, res) => {
+    const request = validate(ResetPasswordRequestSchema, req.body);
+    const userId = validate(z.coerce.number().int(), req.params.userId);
+    const success = await resetPassword(userId, request);
+    
+    if (!success) {
+        throw new AppError({
+            code: 'validation_error',
+            status: 400,
+            message: 'Reset token has expired or is invalid.',
+            data: {
+                errors: [
+                    'Reset token has expired or is invalid.'
+                ]
+            },
+        });
+    }
+
+    res.clearCookie(config.jwtCookie);
+    res.clearCookie(config.refreshCookie);
+
+    res.status(204).send();
 });
 
 export default router;
