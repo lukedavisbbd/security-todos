@@ -369,3 +369,24 @@ export async function getUserById(userId) {
   );
   return UserSchema.optional().parse(result.rows[0]) ?? null;
 }
+
+/**
+ * Update user's name
+ * @param {number} userId
+ * @param {string} name
+ */
+export async function updateUserName(userId, name) {
+    const result = await pool.query(
+        'UPDATE users SET name = $1 WHERE user_id = $2',
+        [name.trim(), userId]
+    );
+    
+    if (result.rowCount === 0) {
+        throw new AppError({
+            code: 'not_found',
+            status: 404,
+            message: 'User not found.',
+            data: undefined,
+        });
+    }
+}
