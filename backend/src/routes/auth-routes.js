@@ -1,12 +1,21 @@
-import { AppError, LoginRequestSchema, RegisterRequestSchema, ResetPasswordRequestSchema } from 'common';
+import { AppError, LoginRequestSchema, rateLimitResponse, RegisterRequestSchema, ResetPasswordRequestSchema } from 'common';
 import { Router } from 'express';
 import { clearAllRefreshTokens, deleteRefreshToken, insertPasswordResetToken, loginUser, registerUser, resetPassword } from '../db/user-queries.js';
 import { authenticated, requireRole, setAuthCookies } from '../middleware/auth-middleware.js';
 import config from '../config/config.js';
 import { validate } from '../utils/validation.js';
 import z from 'zod/v4';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// stricter rate limiting on auth routes
+// 10 requests / minute
+router.use(rateLimit({
+    windowMs: 60 * 1000,
+    limit: 10,
+    message: rateLimitResponse('in one minute'),
+}));
 
 router.post('/login', async (req, res) => {
     const loginReq = validate(LoginRequestSchema, req.body);

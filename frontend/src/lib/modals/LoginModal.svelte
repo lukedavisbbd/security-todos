@@ -39,7 +39,7 @@
                 );
             } else {
                 loginErrors = {
-                    errors: ['Failed to sign in.'],
+                    errors: [err?.message || 'Failed to sign in.'],
                 }
             }
         }
