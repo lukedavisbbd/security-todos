@@ -117,6 +117,15 @@ export const JwtContentsSchema = UserWithRolesSchema;
  * @typedef {z.infer<typeof JwtContentsSchema>} JwtContents
  */
 
+export const PublicUserSchema = z.object({
+    userId: z.number(),
+    name: z.string().nonempty(),
+});
+
+/**
+ * @typedef {z.infer<typeof PublicUserSchema>} PublicUser
+ */
+
 export const UpdateUserNameSchema = z.object({
     name: z.preprocess(trimUnknown,
         z.string()

@@ -3,7 +3,7 @@
     import { fade } from "svelte/transition";
     import Spinner from "../Spinner.svelte";
     import ProfileLogo from "../ProfileLogo.svelte";
-    import { searchUsers } from "../../util/access-control";
+    import { searchUsers, timeoutPromise } from "../../util/access-control";
     import { addUserToTeam } from "../../util/team";
 
     const tryClose = () => {
@@ -12,14 +12,9 @@
         }
     };
 
-    /** @param {number} delayMs */
-    const timeoutPromise = (delayMs) => {
-        return new Promise(resolve => setTimeout(resolve, delayMs));
-    };
-
     /** @type {{ 
      *   teamId: number,
-     *   existingMembers: import('common').User[],
+     *   existingMembers: import('common').PublicUser[],
      *   close: () => void, 
      *   onMemberAdded: () => void 
      * }} */
@@ -33,14 +28,14 @@
 
     /**
      * Add user to team
-     * @param {import('common').UserWithRoles} user
+     * @param {import('common').PublicUser} user
      */
     const handleAddMember = async (user) => {
-        addingMember = user.user.userId;
+        addingMember = user.userId;
         addError = '';
 
         try {
-            const result = await addUserToTeam(teamId, user.user.userId);
+            const result = await addUserToTeam(teamId, user.userId);
             onMemberAdded();
             close();
         } catch (err) {
@@ -52,7 +47,7 @@
 
     /**
      * Check if user is already a member
-     * @param {import('common').User} user
+     * @param {import('common').PublicUser} user
      */
     const isExistingMember = (user) => {
         return existingMembers.some(member => member.userId === user.userId);
@@ -120,11 +115,6 @@
         color: #333;
     }
 
-    .user-email {
-        color: #666;
-        font-size: 0.875rem;
-    }
-
     .member-badge {
         color: #666;
         font-size: 0.75rem;
@@ -175,22 +165,21 @@
                         </div>
                     {:else}
                         <div class="search-results">
-                            {#each users as user (user.user.userId)}
+                            {#each users as user (user.userId)}
                                 <div class="user-item">
                                     <div class="user-info">
                                         <ProfileLogo 
-                                            email={user.user.email}
-                                            name={user.user.name}
+                                            userId={user.userId}
+                                            name={user.name}
                                         />
                                         <div class="user-details">
-                                            <div class="user-name">{user.user.name}</div>
-                                            <div class="user-email">{user.user.email}</div>
+                                            <div class="user-name">{user.name}</div>
                                         </div>
                                     </div>
                                     <div>
-                                        {#if isExistingMember(user.user)}
+                                        {#if isExistingMember(user)}
                                             <span class="member-badge">Already a member</span>
-                                        {:else if addingMember === user.user.userId}
+                                        {:else if addingMember === user.userId}
                                             <button class="btn btn-small btn-primary" disabled>
                                                 <Spinner/>
                                             </button>

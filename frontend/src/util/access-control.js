@@ -1,4 +1,4 @@
-import { UserWithRolesSchema } from "common";
+import { PublicUserSchema, UserWithRolesSchema } from "common";
 import { apiFetch } from "./http";
 import { z } from "zod/v4";
 
@@ -7,7 +7,20 @@ import { z } from "zod/v4";
  */
 export const searchUsers = async (search) => {
     const users = await apiFetch(`/users?search=${encodeURIComponent(search)}`);
+    return PublicUserSchema.array().parse(users);
+};
+
+/**
+ * @param {string} search
+ */
+export const searchUsersFull = async (search) => {
+    const users = await apiFetch(`/users/full?search=${encodeURIComponent(search)}`);
     return UserWithRolesSchema.array().parse(users);
+};
+
+/** @param {number} delayMs */
+export const timeoutPromise = (delayMs) => {
+    return new Promise(resolve => setTimeout(resolve, delayMs));
 };
 
 export const fetchRoles = async () => {

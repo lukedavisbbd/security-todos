@@ -4,8 +4,9 @@ import pg from 'pg';
 import bcrypt from 'bcrypt';
 import authenticator from 'authenticator';
 import config from '../config/config.js';
-import { AppError, UserSchema } from 'common';
+import { AppError, PublicUserSchema, UserSchema, UserWithRolesSchema } from 'common';
 import z from 'zod/v4';
+import { assignRole } from './admin-queries.js';
 
 const saltRounds = 10;
 
@@ -84,19 +85,39 @@ export const searchUsers = async (search) => {
         if (existing && row.role_name) {
             existing.roles.push(z.string().parse(row.role_name));
         } else {
-            users.push({
-                user: UserSchema.parse({
+            users.push(UserWithRolesSchema.parse({
+                user: {
                     userId: row.user_id,
                     name: row.name,
                     email: row.email,
                     emailVerified: row.email_verified,
-                }),
+                },
                 roles: row.role_name ? [z.string().parse(row.role_name)] : [],
-            })
+            }));
         }
     });
     
     return users;
+};
+
+/**
+ * @param {string | undefined} search
+ */
+export const searchUsersPublic = async (search) => {
+    const result = await pool.query(
+        `SELECT user_id, name FROM users
+        WHERE name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%' LIMIT 100`,
+        [search ?? '']
+    );
+
+    const users = result.rows.map(row => {
+        return {
+            userId: row.user_id,
+            name: row.name,
+        };
+    });
+    
+    return PublicUserSchema.array().parse(users);
 };
 
 /**
@@ -303,9 +324,10 @@ export const registerUser = async (request) => {
         throw error;
     }
 
-    const refreshToken = generateHexToken();
-    const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
-    await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
+    // make first user admin
+    if (userInfo.userId === 1) {
+        await assignRole(userInfo.userId, 'access_admin');
+    }
 
     const totpUri = authenticator.generateTotpUri(twoFactorKey, request.email, 'To-Do App', 'SHA1', 6, 30);
 
@@ -439,12 +461,22 @@ export const resetPassword = async (userId, request) => {
  */
 export const getUserById = async (userId) => {
   const result = await pool.query(
-    `SELECT user_id AS userId, email, name, email_verified as emailVerified
+    `SELECT user_id, email, name, email_verified
     FROM users
     WHERE user_id = $1`,
     [userId]
   );
-  return UserSchema.optional().parse(result.rows[0]) ?? null;
+
+  const row = result.rows[0];
+  
+  const user = row ? {
+    userId: row.user_id,
+    email: row.email,
+    name: row.name,
+    emailVerified: row.email_verified,
+  } : null;
+
+  return UserSchema.nullable().parse(user);
 }
 
 /**

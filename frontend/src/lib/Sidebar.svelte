@@ -63,7 +63,7 @@
     <aside transition:fly|global={{ duration: 150, x: 150 }} onclick={e => e.stopPropagation()}>
       <header>
         <a class="profile-button" href="/profile" onclick={() => showMenu = false} use:route>
-          <ProfileLogo email={$userJwtContents.user.email} name={$userJwtContents.user.name}/>
+          <ProfileLogo userId={$userJwtContents.user.userId} name={$userJwtContents.user.name}/>
           {$userJwtContents.user.name}
         </a>
         <button class="sidebar-close btn btn-small" onclick={() => showMenu = false} aria-label="close menu">

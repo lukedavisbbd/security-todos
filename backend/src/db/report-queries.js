@@ -68,7 +68,7 @@ export async function getTeamTaskStatusSummary(teamId) {
  */
 export async function getTeamMemberTaskSummary(teamId) {
     const result = await pool.query(
-        `SELECT user_id, member_name, member_email, status_id, status_name, task_count, avg_days_held
+        `SELECT user_id, member_name, status_id, status_name, task_count, avg_days_held
         FROM team_member_task_summary
         WHERE team_id = $1
         ORDER BY member_name, status_name`,
@@ -79,7 +79,6 @@ export async function getTeamMemberTaskSummary(teamId) {
         return {
             userId: row.user_id,
             memberName: row.member_name,
-            memberEmail: row.member_email,
             statusId: row.status_id,
             statusName: row.status_name,
             taskCount: row.task_count,
@@ -96,7 +95,7 @@ export async function getTeamMemberTaskSummary(teamId) {
  */
 export async function getTeamMemberOverallStats(teamId) {
     const result = await pool.query(
-        `SELECT user_id, member_name, member_email, total_tasks, completed_tasks, active_tasks, avg_days_per_task
+        `SELECT user_id, member_name, total_tasks, completed_tasks, active_tasks, avg_days_per_task
         FROM team_member_overall_stats 
         WHERE team_id = $1
         ORDER BY total_tasks DESC, member_name`,
@@ -107,7 +106,6 @@ export async function getTeamMemberOverallStats(teamId) {
         return {
             userId: row.user_id,
             memberName: row.member_name,
-            memberEmail: row.member_email,
             totalTasks: row.total_tasks,
             completedTasks: row.completed_tasks,
             activeTasks: row.active_tasks,

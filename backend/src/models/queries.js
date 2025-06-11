@@ -1,7 +1,9 @@
 import { z } from "zod/v4";
 
 export const UserSearchQuerySchema = z.object({
-    search: z.string().optional(),
+    search: z.string()
+        .min(2, { error: 'Search must contain at least 2 characters.' })
+        .max(256, { error: 'Search must contain at most 256 characters.' }),
 });
 
 /**

@@ -20,7 +20,7 @@
 
 <main>
   <header>
-    <ProfileLogo email={user.email} name={user.name}/>
+    <ProfileLogo userId={user.userId} name={user.name}/>
     <section>
       <h3>{user.name}</h3>
       <p>

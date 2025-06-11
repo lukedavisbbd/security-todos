@@ -56,7 +56,6 @@
      * @returns {{
      *     userId: number,
      *     memberName: string,
-     *     memberEmail: string,
      *     statuses: {
      *         statusName: string,
      *         taskCount: number,
@@ -72,7 +71,6 @@
                 memberMap.set(item.userId, {
                     userId: item.userId,
                     memberName: item.memberName,
-                    memberEmail: item.memberEmail,
                     statuses: [],
                 });
             }
@@ -194,10 +192,6 @@
     .member-name {
         font-weight: 500;
         color: #333;
-    }
-    .member-email {
-        color: #666;
-        font-size: 0.875rem;
     }
     .status-badges {
         display: flex;
@@ -380,7 +374,6 @@
                                 <tr>
                                     <td>
                                         <div class="member-name">{member.memberName}</div>
-                                        <div class="member-email">{member.memberEmail}</div>
                                     </td>
                                     <td>{member.totalTasks}</td>
                                     <td>{member.completedTasks}</td>
@@ -415,7 +408,6 @@
                                 <tr>
                                     <td>
                                         <div class="member-name">{member.memberName}</div>
-                                        <div class="member-email">{member.memberEmail}</div>
                                     </td>
                                     <td>
                                         {#if member.statuses.length > 0}

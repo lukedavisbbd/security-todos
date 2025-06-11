@@ -1,4 +1,4 @@
-import { TeamReportsSchema, TeamSchema, TeamWithStatsSchema, UserSchema } from "common";
+import { PublicUserSchema, TeamReportsSchema, TeamSchema, TeamWithStatsSchema } from "common";
 import { apiFetch } from "./http";
 
 /**
@@ -34,7 +34,7 @@ export const getTeamMemberships = async () => {
  */
 export const getTeamMembers = async (teamId) => {
     const users = await apiFetch(`/teams/${teamId}/users`);
-    return UserSchema.array().parse(users);
+    return PublicUserSchema.array().parse(users);
 };
 
 /**
