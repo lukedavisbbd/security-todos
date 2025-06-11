@@ -110,7 +110,7 @@
 
 <article>
     <section class="profile">
-        <ProfileLogo email={user.user.email} name={user.user.name}/>
+        <ProfileLogo userId={user.user.userId} name={user.user.name}/>
         {user.user.name}
     </section>
     <section class="roles">

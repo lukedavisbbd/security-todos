@@ -6,7 +6,7 @@
 
     /**
      * @type {{
-     *     member: import('common').User,
+     *     member: import('common').PublicUser,
      *     team: import('common').Team,
      *     isTeamOwner: boolean,
      *     refreshTeam: (() => void) | (() => Promise<void>),
@@ -40,12 +40,6 @@
         word-wrap: break-word;
     }
 
-    .member-email {
-        color: #666;
-        font-size: 0.875rem;
-        word-wrap: break-word;
-    }
-
     .actions {
         display: flex;
         gap: 0.5rem;
@@ -68,12 +62,11 @@
     <td>
         <div class="member-info">
             <ProfileLogo
-                email={member.email}
+                userId={member.userId}
                 name={member.name}
             />
             <div class="member-details">
                 <div class="member-name">{member.name}</div>
-                <div class="member-email">{member.email}</div>
             </div>
         </div>
     </td>

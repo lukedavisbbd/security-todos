@@ -61,7 +61,6 @@ export const TeamOverviewStatsSchema = z.object({
 export const TeamMemberOverallStatsSchema = z.object({
   userId: z.int(),
   memberName: z.string(),
-  memberEmail: z.email(),
   totalTasks: z.int(),
   completedTasks: z.int(),
   activeTasks: z.int(),

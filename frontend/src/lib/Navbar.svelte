@@ -97,7 +97,7 @@
         aria-haspopup="menu"
       >
         <ChevronDown aria-hidden="true"/>
-        <ProfileLogo email={$userJwtContents.user.email} name={$userJwtContents.user.name}/>
+        <ProfileLogo userId={$userJwtContents.user.userId} name={$userJwtContents.user.name}/>
       </button>
     {:else}
       <nav class="auth-actions" aria-label="Authentication">

@@ -1,19 +1,47 @@
 import { Router } from 'express';
-import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers, updateUserName } from '../db/user-queries.js';
+import { addUserRole, deleteUserRole, fetchUserRoles, getUserById, searchUsers, searchUsersPublic, updateUserName } from '../db/user-queries.js';
 import { UserSearchQuerySchema } from '../models/queries.js';
 import { AddRoleRequestSchema, AppError, UpdateUserNameSchema } from 'common';
 import { authenticated } from '../middleware/auth-middleware.js';
 import { fetchRoles } from '../db/role-queries.js';
 import { validate } from '../utils/validation.js';
 import { requireRole } from '../middleware/auth-middleware.js';
+import crypto from 'crypto';
 import z from 'zod/v4';
 
 const router = Router();
 
-router.get('/users', requireRole('access_admin'), async (req, res) => {
-    const query = UserSearchQuerySchema.parse(req.query);
+router.get('/users', authenticated, async (req, res) => {
+    const query = validate(UserSearchQuerySchema, req.query);
+    const users = await searchUsersPublic(query.search?.trim());
+    res.json(users);
+});
+
+router.get('/users/full', requireRole('access_admin'), async (req, res) => {
+    const query = validate(UserSearchQuerySchema, req.query);
     const users = await searchUsers(query.search?.trim());
     res.json(users);
+});
+
+router.get('/users/:userId/picture', async (req, res) => {
+    const userId = validate(z.coerce.number().int(), req.params.userId);
+
+    const user = await getUserById(userId);
+    
+    if (!user) {
+        throw new AppError({
+            code: 'not_found',
+            status: 404,
+            message: 'User not found',
+            data: undefined,
+        });
+    }
+
+    const hash = crypto.createHash('sha256')
+        .update(user.email.trim().toLowerCase())
+        .digest('hex');
+    
+    res.json(`https://gravatar.com/avatar/${hash}?d=identicon&s=256`);
 });
 
 router.post('/users/:userId/roles', requireRole('access_admin'), async (req, res) => {

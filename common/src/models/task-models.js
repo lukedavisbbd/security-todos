@@ -106,7 +106,6 @@ export const StatusSummarySchema = z.object({
 export const TeamMemberTaskSummarySchema = z.object({
   userId: z.int(),
   memberName: z.string(),
-  memberEmail: z.email(),
   statusId: z.int(),
   statusName: z.string(),
   taskCount: z.int(),

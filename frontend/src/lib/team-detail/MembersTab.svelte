@@ -15,19 +15,6 @@
 
     let membersPromise = $state(getTeamMembers(team.teamId));
 
-    /**
-     * Remove a member from the team
-     * @param {import('common').User} member
-     */
-    const handleRemoveMember = async (member) => {
-        if (!confirm(`Are you sure you want to remove ${member.name} from this team?`)) {
-            return;
-        }
-
-        await removeUserFromTeam(team.teamId, member.userId);
-        membersPromise = getTeamMembers(team.teamId);
-    };
-
     let showAddMember = $state(false);
 </script>
 

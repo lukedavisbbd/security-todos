@@ -1,5 +1,5 @@
 import { pool } from './pool.js';
-import { AppError, UserSchema } from 'common';
+import { AppError } from 'common';
 import z from 'zod/v4';
 import pg from 'pg';
 
@@ -96,13 +96,4 @@ export async function getUserRoles(userId) {
         [userId]
     );
     return result.rows.map(row => z.string().parse(row.role_name));
-}
-
-/**
- * Get all users (ID and email).
- */
-export async function getAllUsers() {
-    const result = await pool.query('SELECT userId, email, name, emailVerified FROM users');
-    const users = UserSchema.array().parse(result.rows);
-    return users;
 }

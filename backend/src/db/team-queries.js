@@ -1,4 +1,4 @@
-import { AppError, TeamSchema, TeamWithStatsSchema, UserSchema } from 'common';
+import { AppError, PublicUserSchema, TeamSchema, TeamWithStatsSchema } from 'common';
 import { pool } from './pool.js';
 
 /**
@@ -214,7 +214,7 @@ export async function getTeamsForUser(userId) {
  */
 export async function getUsersInTeam(teamId) {
     const result = await pool.query(
-        `SELECT u.user_id, u.email, u.name, u.email_verified
+        `SELECT u.user_id, u.name 
         FROM users AS u
         JOIN user_teams AS ut ON u.user_id = ut.user_id
         WHERE ut.team_id = $1
@@ -224,12 +224,10 @@ export async function getUsersInTeam(teamId) {
     const users = result.rows.map(row => {
         return {
             userId: row.user_id,
-            email: row.email,
             name: row.name,
-            emailVerified: row.email_verified,
         };
     });
-    return UserSchema.array().parse(users);
+    return PublicUserSchema.array().parse(users);
 }
 
 /**
