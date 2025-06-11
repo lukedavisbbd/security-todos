@@ -41,7 +41,7 @@
     const updateStatus = async (task) => {
         statusLoading = true;
         statusError = '';
-        assignTaskToUser(task.taskId, task.assignedToId)
+        updateTaskStatus(task.taskId, task.statusId)
             .then(() => statusLoading = false)
             .catch(error => {
                 statusLoading = false;
@@ -248,7 +248,7 @@
                 id="status-{task.taskId}"
                 class="status-select"
                 bind:value={task.statusId}
-                onchange={() => updateStatus(task)}
+                onchange={() => updateTaskStatus(task.taskId, task.statusId)}
                 aria-describedby={statusError ? `status-error-${task.taskId}` : undefined}
             >
                 {#each allStatuses as status (status.statusId)}
