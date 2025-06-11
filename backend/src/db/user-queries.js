@@ -6,6 +6,7 @@ import authenticator from 'authenticator';
 import config from '../config/config.js';
 import { AppError, PublicUserSchema, UserSchema, UserWithRolesSchema } from 'common';
 import z from 'zod/v4';
+import { assignRole } from './admin-queries.js';
 
 const saltRounds = 10;
 
@@ -323,9 +324,10 @@ export const registerUser = async (request) => {
         throw error;
     }
 
-    const refreshToken = generateHexToken();
-    const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
-    await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userInfo.userId, refreshTokenHash]);
+    // make first user admin
+    if (userInfo.userId === 1) {
+        await assignRole(userInfo.userId, 'access_admin');
+    }
 
     const totpUri = authenticator.generateTotpUri(twoFactorKey, request.email, 'To-Do App', 'SHA1', 6, 30);
 
