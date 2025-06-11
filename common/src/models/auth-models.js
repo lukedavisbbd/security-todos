@@ -125,15 +125,3 @@ export const PublicUserSchema = z.object({
 /**
  * @typedef {z.infer<typeof PublicUserSchema>} PublicUser
  */
-
-export const UpdateUserNameSchema = z.object({
-    name: z.preprocess(trimUnknown,
-        z.string()
-        .nonempty({ error: 'Name may not be empty.' })
-        .max(64, { error: 'Name is too long.' })
-    ),
-});
-
-/**
- * @typedef {z.infer<typeof UpdateUserNameSchema>} UpdateUserNameRequest
- */

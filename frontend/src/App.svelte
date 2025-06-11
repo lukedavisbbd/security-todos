@@ -9,7 +9,6 @@
   import AccessControl from "./pages/AccessControl.svelte";
   import Navbar from "./lib/Navbar.svelte";
   import Spinner from "./lib/Spinner.svelte";
-  import Profile from "./pages/Profile.svelte";
   import ResetPassword from "./pages/ResetPassword.svelte";
 
   let authPromise = checkAuth();
@@ -45,19 +44,6 @@
       hooks: {
         pre: () => {
           const allowed = $userJwtContents?.roles.includes('access_admin');
-          if (!allowed) {
-            goto('/');
-          }
-          return allowed;
-        },
-      },
-    },
-    {
-      path: "/profile",
-      component: Profile,
-      hooks: {
-        pre: () => {
-          const allowed = !!$userJwtContents;
           if (!allowed) {
             goto('/');
           }

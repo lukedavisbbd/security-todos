@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { addUserRole, deleteUserRole, fetchUserRoles, getUserById, searchUsers, searchUsersPublic, updateUserName } from '../db/user-queries.js';
+import { addUserRole, deleteUserRole, fetchUserRoles, getUserById, searchUsers, searchUsersPublic } from '../db/user-queries.js';
 import { UserSearchQuerySchema } from '../models/queries.js';
-import { AddRoleRequestSchema, AppError, UpdateUserNameSchema } from 'common';
+import { AddRoleRequestSchema, AppError } from 'common';
 import { authenticated } from '../middleware/auth-middleware.js';
 import { fetchRoles } from '../db/role-queries.js';
 import { validate } from '../utils/validation.js';
@@ -100,18 +100,6 @@ router.delete('/users/:userId/roles', requireRole('access_admin'), async (req, r
     const userRoles = await fetchUserRoles(userId);
     
     res.json(userRoles);
-});
-
-/**
- * Update user's name
- */
-router.put('/users/profile/name', authenticated, async (req, res) => {
-    const authedReq = /** @type {import('../').AuthenticatedRequest} */(req);
-    const currentUserId = authedReq.jwtContents.user.userId;
-    const { name } = validate(UpdateUserNameSchema, req.body);
-
-    await updateUserName(currentUserId, name);
-    res.json({ message: 'Name updated successfully' });
 });
 
 export default router;
