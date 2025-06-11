@@ -1,13 +1,15 @@
 <script>
   import ProfileLogo from '../lib/ProfileLogo.svelte';
   import Spinner from '../lib/Spinner.svelte';
+  import TwoFAModal from '../lib/modals/TwoFAModal.svelte';
   import { userJwtContents } from '../util/stores';
   import { updateUserName } from '../util/user';
   import { UpdateUserNameSchema } from 'common';
   import { z } from 'zod/v4';
-  import { ApiError } from '../util/http';
+  import { ApiError, apiFetch } from '../util/http';
+  import { whoami } from '../util/auth';
   
-  let user = $userJwtContents?.user;
+  let user = $state($userJwtContents?.user);
   if (!user) throw new Error();
 
   let nameForm = $state({
@@ -16,12 +18,46 @@
     /** @type {{ errors?: string[], properties?: any } | null} */
     errors: null
   });
+
+  let emailMessage = $state('');
+  let emailUpdateError = $state('');
+  let show2FAModal = $state(false);
+  let updatingEmail = $state(false);
+  let userEmail = $state(user?.email || '');
+
+  function open2FAModal() {
+    show2FAModal = true;
+    emailUpdateError = '';
+  }
+
+  function close2FAModal() {
+    show2FAModal = false;
+  }
+
+  async function handleEmailUpdate(twoFactor) {
+    emailMessage = '';
+    emailUpdateError = '';
+    updatingEmail = true;
+    try {
+      await apiFetch(`/users/profile/email`, 'PUT', { email: userEmail, twoFactor });
+      emailMessage = 'Email updated successfully.';
+      // Refresh user info
+      const jwt = await whoami();
+      userJwtContents.set(jwt);
+    } catch (err) {
+      emailUpdateError = err?.errorResponse?.message || err.message || 'Failed to update email.';
+    } finally {
+      updatingEmail = false;
+      close2FAModal();
+    }
+  }
 </script>
 
 <main>
   <header>
     <ProfileLogo email={user.email} name={user.name}/>
     <section>
+
       <h3>{user.name}</h3>
       <p>
         {user.email}
@@ -102,15 +138,30 @@
         </button>
       </section>
     </form>
-    <form onsubmit={e => e.preventDefault()}>
+    <form onsubmit={e => {
+      e.preventDefault();
+      open2FAModal();
+    }}>
       <section class="form-group">
         <label for="email" class="inline">Email Address</label>
-        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required>
+        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required bind:value={userEmail}>
       </section>
       <section class="button-group">
         <button class="btn btn-dark">Update Email</button>
       </section>
     </form>
+    {#if emailMessage}
+    <p class="success">{emailMessage}</p>
+    {/if}
+    {#if emailUpdateError}
+      <p class="error">{emailUpdateError}</p>
+    {/if}
+    <TwoFAModal
+      open= {show2FAModal}
+      onCodeSubmit={handleEmailUpdate}
+      onClose={close2FAModal}
+      loading = {updatingEmail}
+    />
     <h5>Change Password</h5>
     <form onsubmit={e => e.preventDefault()}>
       <section class="form-group">
@@ -202,4 +253,7 @@
       }
     }
   }
+
+  .success { color: limegreen; }
+  .error { color: red; }
 </style>

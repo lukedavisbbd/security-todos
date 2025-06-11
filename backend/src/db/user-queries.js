@@ -467,3 +467,92 @@ export async function updateUserName(userId, name) {
         });
     }
 }
+
+
+/**
+ * Update a user's email address, verifying 2FA.
+ * @param {number} userId
+ * @param {string} email
+ * @param {string} twoFactor
+ */
+export async function updateUserEmail(userId, email, twoFactor) {
+  // Fetch user info
+  const result = await pool.query(
+    "SELECT user_id, email, two_factor_key FROM users WHERE user_id = $1",
+    [userId]
+  );
+  const user = result.rows[0];
+  if (!user)
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "User not found",
+      data: { errors: ["User not found."] },
+    });
+  
+  const twoFactorKey = await decrypt(user.two_factor_key);
+  if (!twoFactorKey)
+    return false;
+
+  if (!authenticator.verifyToken(twoFactorKey, twoFactor)) {
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "Authentication failed",
+      data: { errors: ["Authentication failed"] },
+    });
+  }
+  
+  const existing = await pool.query(
+    "SELECT user_id FROM users WHERE email = $1",
+    [email]
+  );
+
+  if (existing.rows.length > 0) {
+    throw new AppError({
+      code: "validation_error",
+      status: 400,
+      message: "Email address already taken.",
+      data: { errors: ["Email address already taken."] },
+    });
+  }
+  await pool.query(
+    "UPDATE users SET email = $1, email_verified = false WHERE user_id = $2",
+    [email, userId]
+  );
+
+  const refreshToken = generateHexToken();
+  const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
+  
+  await pool.query('INSERT INTO refresh_tokens (user_id, refresh_token) VALUES ($1, $2)', [userId, refreshTokenHash]);
+
+  const getNewUserInfo = await pool.query(
+    "SELECT user_id, email, name, email_verified FROM users WHERE user_id = $1",
+    [userId]
+  );
+
+  const updatedUser = getNewUserInfo.rows[0];
+      /**
+     * @type {import('common').User}
+     */
+    const userInfo = {
+        userId: updatedUser.user_id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        emailVerified: updatedUser.email_verified,
+    };
+    
+    /**
+     * @type {import('common').JwtContents}
+     */
+    const jwtContents = {
+        user:userInfo,
+        roles: await fetchUserRoles(userInfo.userId),
+    };
+
+    return {
+        user: userInfo,
+        jwtContents,
+        refreshToken,
+    };
+}
