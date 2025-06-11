@@ -467,3 +467,22 @@ export async function updateUserName(userId, name) {
         });
     }
 }
+
+/**
+ * @param {number} userId
+ */
+export async function clearAndCreateRefreshToken(userId) {
+  await clearAllRefreshTokens(userId);
+
+  const refreshToken = generateHexToken();
+  const refreshTokenHash  = await bcrypt.hash(refreshToken, saltRounds);
+
+  await pool.query(
+    'INSERT INTO refresh_tokens(user_id, refresh_token) VALUES($1, $2)',
+    [userId, refreshTokenHash]
+  );
+
+  return refreshTokenHash;
+}
+
+

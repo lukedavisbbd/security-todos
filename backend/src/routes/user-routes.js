@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers, updateUserName, changePassword } from '../db/user-queries.js';
+import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers, updateUserName, changePassword, clearAllRefreshTokens, clearAndCreateRefreshToken } from '../db/user-queries.js';
 import { UserSearchQuerySchema } from '../models/queries.js';
-import { authenticated } from '../middleware/auth-middleware.js';
+import { authenticated, setAuthCookies } from '../middleware/auth-middleware.js';
 import { AddRoleRequestSchema, AppError, UpdateUserNameSchema, ChangePasswordRequestSchema } from 'common';
 import { fetchRoles } from '../db/role-queries.js';
 import { validate } from '../utils/validation.js';
@@ -102,9 +102,13 @@ router.put('/users/profile/change-password', authenticated, async (req, res) => 
         });
     }
 
-    // await clearAllRefreshTokens(userId);
+    await clearAllRefreshTokens(userId); 
+    const refreshToken = await clearAndCreateRefreshToken(userId);
 
-    res.json({ message: 'Password changed successfully.' });
+    const { iat, exp, ...cleanJwtPayload } = authedReq.jwtContents;
+    setAuthCookies(res, cleanJwtPayload, refreshToken);
+
+    res.send({ message: 'Password changed successfully.' });
   }
 );
 

@@ -128,3 +128,13 @@ export const UpdateUserNameSchema = z.object({
 /**
  * @typedef {z.infer<typeof UpdateUserNameSchema>} UpdateUserNameRequest
  */
+
+export const TwoFactorSchema = z.object({
+    twoFactor: z.string()
+        .length(6, { error: '2FA pin must be exactly 6 digits.' })
+        .refine(string => digitRegex.test(string), { error: '2FA pin may only contain digits.' }),
+});
+
+/**
+ * @typedef {z.infer<typeof TwoFactorSchema>} TwoFactorAuth
+ */

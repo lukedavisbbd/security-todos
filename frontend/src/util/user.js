@@ -1,4 +1,5 @@
 import { apiFetch } from "./http";
+import { z } from "zod/v4";
 
 /**
  * Update user's name
@@ -12,9 +13,9 @@ export const updateUserName = async (name) => {
  * @param {{ oldPassword: string; newPassword: string; twoFactor: string }} payload
  */
 export const changePassword = async (payload) => {
-  return await apiFetch(
+  await apiFetch(
     '/users/profile/change-password',
     'PUT',
     payload
   );
-}
+};

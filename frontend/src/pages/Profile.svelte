@@ -3,13 +3,82 @@
   import Spinner from '../lib/Spinner.svelte';
   import { userJwtContents } from '../util/stores';
   import ChangePasswordModal from '../lib/modals/ChangePasswordModal.svelte';
-  import { updateUserName } from '../util/user';
-  import { UpdateUserNameSchema } from 'common';
+  import { updateUserName, changePassword } from '../util/user';
+  import { pwnedPasswordCount } from "../util/auth";
+  import { UpdateUserNameSchema, ChangePasswordRequestSchema } from 'common';
   import { z } from 'zod/v4';
   import { ApiError } from '../util/http';
   
   let user = $userJwtContents?.user;
   if (!user) throw new Error();
+
+  let nameForm = $state({
+    name: user.name,
+    isSubmitting: false,
+    /** @type {{ errors?: string[], properties?: any } | null} */
+    errors: null
+  });
+
+  let passwordForm = $state({
+    oldPassword: '',
+    newPassword: '',
+    show2FAModal: false,
+    isSubmitting: false,
+    /** @type {{ errors?: string[], properties?: any } | null} */
+    errors: null
+  });
+
+  let pwnedPasswords = $derived(pwnedPasswordCount(passwordForm.newPassword));
+
+  function open2FAModal() {
+    passwordForm.errors = null;
+    if (!passwordForm.oldPassword || !passwordForm.newPassword) {
+      passwordForm.errors = { errors: ['Both old and new password are required.'] };
+      return;
+    }
+    passwordForm.show2FAModal = true;
+  }
+
+  async function onConfirm2FA(event) {
+    const { twoFactor } = event.detail;
+    passwordForm.errors = null;
+
+    const request = ChangePasswordRequestSchema.safeParse({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+      twoFactor
+    });
+    
+    if (request.error) {
+      alert(z.treeifyError(request.error));
+      nameForm.errors = z.treeifyError(request.error);
+      passwordForm.show2FAModal = false;
+      return;
+    }
+
+    passwordForm.isSubmitting = true;
+    try {
+      await changePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+        twoFactor
+      });
+
+      passwordForm.show2FAModal = false;
+      passwordForm.oldPassword = '';
+      passwordForm.newPassword = '';
+
+    } catch (err) {
+      if (err instanceof ApiError) {
+        passwordForm.errors = err.errorResponse.data ?? { errors: [err.message] };
+      } else {
+        passwordForm.errors = { errors: [err.message || 'Failed to update password.'] };
+      }
+    } finally {
+      passwordForm.isSubmitting = false;
+      passwordForm.show2FAModal = false;
+    }
+  }
 </script>
 
 <main>
@@ -106,20 +175,53 @@
       </section>
     </form>
     <h5>Change Password</h5>
+    {#if passwordForm.errors?.errors?.at(0)}
+      <p class="error">{passwordForm.errors.errors[0]}</p>
+    {/if}
+    {#if passwordForm.errors?.properties?.name?.errors?.at(0)}
+      <p class="error">{passwordForm.errors.properties.name.errors[0]}</p>
+    {/if}
+    <!-- svelte-ignore block_empty -->
+    {#await pwnedPasswords}
+    {:then count}
+        {#if count > 0}
+            <p class="error">
+                This new password is not secure! It has been detected in
+                {#if count == 1}
+                    a data breach!
+                {:else}
+                    {count} data breaches!
+                {/if}
+                <br>
+                Please change your password immediately!
+            </p>
+        {/if}
+    {/await}
     <form onsubmit={e => e.preventDefault()}>
       <section class="form-group">
         <label for="password" class="inline">Old Password</label>
-        <input type="password" name="password" id="password" placeholder="" min="1" maxlength="128" required>
+        <input type="password" name="password" id="password" bind:value={passwordForm.oldPassword} placeholder="" autocomplete="new-password webauthn" min="12" maxlength="128" required>
       </section>
       <section class="form-group">
         <label for="new-password" class="inline">New Password</label>
-        <input type="password" name="new-password" id="new-password" placeholder="" min="1" maxlength="128" required>
+        <input type="password" name="new-password" id="new-password" bind:value={passwordForm.newPassword} placeholder="" min="12" maxlength="128" required>
       </section>
       <section class="button-group">
-        <!-- <button class="btn btn-dark">Change Password</button> -->
-        <button class="btn btn-secondary" onclick={() => showChange = true}>Change Password</button>
-        <ChangePasswordModal on:close={() => (showChange = false)} />
+        <button class="btn btn-dark" type="button" onclick={open2FAModal} disabled={passwordForm.isSubmitting}>
+          {#if passwordForm.isSubmitting}
+            <Spinner/>
+            Updating...
+          {:else}
+            Change Password
+          {/if}
+        </button>
       </section>
+      {#if passwordForm.show2FAModal}
+        <ChangePasswordModal
+          on:close={() => (passwordForm.show2FAModal = false)}
+          on:confirm={onConfirm2FA}
+        />
+      {/if}
     </form>
   </article>
 </main>
