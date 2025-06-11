@@ -248,7 +248,7 @@
                 id="status-{task.taskId}"
                 class="status-select"
                 bind:value={task.statusId}
-                onchange={() => updateStatus(task)}
+                onchange={() => updateTaskStatus(task.taskId, task.statusId)}
                 aria-describedby={statusError ? `status-error-${task.taskId}` : undefined}
             >
                 {#each allStatuses as status (status.statusId)}
