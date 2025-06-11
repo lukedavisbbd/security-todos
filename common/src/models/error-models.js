@@ -32,8 +32,7 @@ export const rateLimitResponse = (period = 'later') => {
  *     'unprocessable_content' |
  *     'not_logged_in' |
  *     'missing_role' |
- *     'rate_limited' |
- *     'not_permitted'
+ *     'rate_limited'
  * )} ErrorCode
  */
 
