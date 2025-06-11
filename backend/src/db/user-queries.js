@@ -335,50 +335,6 @@ export const registerUser = async (request) => {
 };
 
 /**
- * Returns true if successfully changed password,
- * returns false if failed to change password because 'user not found or password is incorrect'.
- * @param {number} userId
- * @param {import('common').ChangePasswordRequest} request
- */
-export const changePassword = async (userId, request) => {
-    const result = await pool.query(
-        'SELECT user_id, email, name, password, email_verified, two_factor_key FROM users WHERE user_id = $1',
-        [userId]
-    );
-    const row = result.rows[0];
-    const userInfo = row ? mapRowToUserInfo(row) : null;
-
-    if (!userInfo)
-        return false;
-
-    const twoFactorKey = await decrypt(userInfo.twoFactorKeyEncrypted);
-
-    if (!twoFactorKey) {
-        throw new AppError();
-    }
-
-    // verify password
-    if (!await bcrypt.compare(request.oldPassword, userInfo.passwordHash))
-        return false;
-
-    // verify 2FA
-    if (!authenticator.verifyToken(twoFactorKey, request.twoFactor))
-        throw new AppError({
-            code: 'validation_error',
-            status: 400,
-            message: 'Failed two factor authentication.',
-            data: {
-                errors: ['Failed two factor authentication.']
-            }
-        });
-    
-    const newPasswordHash = await bcrypt.hash(request.newPassword, saltRounds);
-    await pool.query('UPDATE users SET password = $1 WHERE user_id = $2', [newPasswordHash, userInfo.userId]);
-
-    return true;
-};
-
-/**
  * @param {number} userId 
  */
 export const insertPasswordResetToken = async (userId) => {
@@ -477,25 +433,4 @@ export const getUserById = async (userId) => {
   } : null;
 
   return UserSchema.nullable().parse(user);
-}
-
-/**
- * Update user's name
- * @param {number} userId
- * @param {string} name
- */
-export async function updateUserName(userId, name) {
-    const result = await pool.query(
-        'UPDATE users SET name = $1 WHERE user_id = $2',
-        [name.trim(), userId]
-    );
-    
-    if (result.rowCount === 0) {
-        throw new AppError({
-            code: 'not_found',
-            status: 404,
-            message: 'User not found.',
-            data: undefined,
-        });
-    }
 }

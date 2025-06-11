@@ -75,10 +75,6 @@
           <Home/>
           Home
         </a>
-        <a class="btn" href="/profile" onclick={() => showMenu = false} use:route>
-          <User/>
-          My Profile
-        </a>
         {#if $userJwtContents.roles.some(role => role == 'access_admin') }
           <a class="btn" href="/access" onclick={() => showMenu = false} use:route>
             <UserLock/>

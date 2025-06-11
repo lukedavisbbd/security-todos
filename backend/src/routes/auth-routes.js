@@ -9,7 +9,7 @@ import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
-// stricter rate limiting on auth routes
+// strict rate limiting on auth routes
 // 10 requests / minute
 router.use(rateLimit({
     windowMs: 60 * 1000,

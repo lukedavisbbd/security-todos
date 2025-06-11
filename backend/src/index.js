@@ -18,7 +18,7 @@ app.set('trust proxy', 1);
 
 app.use(rateLimit({
     windowMs: 60_000,
-    limit: 60,
+    limit: 200,
     message: rateLimitResponse('in one minute'),
 }));
 app.use(cookieParser())
