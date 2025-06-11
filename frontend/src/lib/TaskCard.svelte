@@ -41,7 +41,7 @@
     const updateStatus = async (task) => {
         statusLoading = true;
         statusError = '';
-        assignTaskToUser(task.taskId, task.assignedToId)
+        updateTaskStatus(task.taskId, task.statusId)
             .then(() => statusLoading = false)
             .catch(error => {
                 statusLoading = false;
