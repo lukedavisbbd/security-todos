@@ -76,7 +76,7 @@ export class AppError extends Error {
  *     ErrorResponseType<'not_found', 404> |
  *     ErrorResponseType<'unprocessable_content', 422> |
  *     ErrorResponseType<'not_logged_in', 401> |
- *     ErrorResponseType<'missing_role', 403> |
- *     ErrorResponseType<'rate_limited', 429>
+ *     ErrorResponseType<'missing_role', 401> |
+ *     ErrorResponseType<'rate_limited', 429> 
  * )} ErrorResponse
  */

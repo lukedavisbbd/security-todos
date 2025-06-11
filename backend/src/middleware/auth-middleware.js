@@ -99,7 +99,7 @@ export const requireRole = (roleRequirement) => {
         if (!authReq.jwtContents.roles.includes(roleRequirement)) {
             throw new AppError({
                 code: 'missing_role',
-                status: 403,
+                status: 401,
                 message: 'Not allowed.',
                 data: undefined,
             });

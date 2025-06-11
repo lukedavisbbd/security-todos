@@ -26,7 +26,7 @@ export async function assertTeamAccess(teamId, userId) {
   if (!hasAccess) {
     throw new AppError({
       code: 'missing_role',
-      status: 403,
+      status: 401,
       message: 'Not authorised to access team.',
       data: undefined,
     });
@@ -42,7 +42,7 @@ export async function assertTeamOwner(teamId, userId) {
   if (!isOwner) {
     throw new AppError({
       code: 'missing_role',
-      status: 403,
+      status: 401,
       message: 'Not authorised to access team.',
       data: undefined,
     });
