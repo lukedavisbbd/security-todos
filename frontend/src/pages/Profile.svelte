@@ -1,6 +1,7 @@
 <script>
   import ProfileLogo from '../lib/ProfileLogo.svelte';
   import Spinner from '../lib/Spinner.svelte';
+  import TwoFAModal from '../lib/modals/TwoFAModal.svelte';
   import { userJwtContents } from '../util/stores';
   import { updateUserName } from '../util/user';
   import { UpdateUserNameSchema } from 'common';
@@ -8,7 +9,7 @@
   import { ApiError, apiFetch } from '../util/http';
   import { whoami } from '../util/auth';
   
-  let user = $userJwtContents?.user;
+  let user = $state($userJwtContents?.user);
   if (!user) throw new Error();
 
   let nameForm = $state({
@@ -18,27 +19,36 @@
     errors: null
   });
 
-  let emailMessage = '';
-  let emailError = '';
-  let email2fa;
+  let emailMessage = $state('');
+  let emailUpdateError = $state('');
+  let show2FAModal = $state(false);
+  let updatingEmail = $state(false);
+  let userEmail = $state(user?.email || '');
 
-  async function handleEmailUpdate(e) {
-    e.preventDefault();
+  function open2FAModal() {
+    show2FAModal = true;
+    emailUpdateError = '';
+  }
+
+  function close2FAModal() {
+    show2FAModal = false;
+  }
+
+  async function handleEmailUpdate(twoFactor) {
     emailMessage = '';
-    emailError = '';
-    const form = e.target;
-    const email = form.email.value.trim();
-    const twoFactor = form.email2fa.value.trim();
+    emailUpdateError = '';
+    updatingEmail = true;
     try {
-      await apiFetch(`/users/${user?.userId}/email`, 'PUT', { email, twoFactor });
+      await apiFetch(`/users/profile/email`, 'PUT', { email: userEmail, twoFactor });
       emailMessage = 'Email updated successfully.';
       // Refresh user info
       const jwt = await whoami();
       userJwtContents.set(jwt);
-      user = jwt.user;
-      email2fa = '';
     } catch (err) {
-      emailError = err?.errorResponse?.message || err.message || 'Failed to update email.';
+      emailUpdateError = err?.errorResponse?.message || err.message || 'Failed to update email.';
+    } finally {
+      updatingEmail = false;
+      close2FAModal();
     }
   }
 </script>
@@ -47,6 +57,7 @@
   <header>
     <ProfileLogo email={user.email} name={user.name}/>
     <section>
+
       <h3>{user.name}</h3>
       <p>
         {user.email}
@@ -65,12 +76,6 @@
   <article>
     <p class="profile-picture-source">Your profile picture is sourced from <a href="https://gravatar.com/" target="_blank">Gravatar</a>.</p>
     <h5>Personal Details</h5>
-      {#if emailMessage}
-      <p class="success">{emailMessage}</p>
-      {/if}
-      {#if emailError}
-        <p class="error">{emailError}</p>
-      {/if}
     <form onsubmit={async (e) => {
       e.preventDefault();
       
@@ -133,20 +138,30 @@
         </button>
       </section>
     </form>
-    <form onsubmit={handleEmailUpdate}>
+    <form onsubmit={e => {
+      e.preventDefault();
+      open2FAModal();
+    }}>
       <section class="form-group">
         <label for="email" class="inline">Email Address</label>
-        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required value={user?.email}>
-      </section>
-      <section class="form-group">
-        <label for="email2fa" class="inline">2FA Code</label>
-        <input type="text" name="email2fa" id="email2fa" placeholder="" minlength="6" maxlength="6" required bind:value={email2fa}>
+        <input type="email" name="email" id="email" placeholder="" min="1" maxlength="128" required bind:value={userEmail}>
       </section>
       <section class="button-group">
         <button class="btn btn-dark">Update Email</button>
       </section>
-
     </form>
+    {#if emailMessage}
+    <p class="success">{emailMessage}</p>
+    {/if}
+    {#if emailUpdateError}
+      <p class="error">{emailUpdateError}</p>
+    {/if}
+    <TwoFAModal
+      open= {show2FAModal}
+      onCodeSubmit={handleEmailUpdate}
+      onClose={close2FAModal}
+      loading = {updatingEmail}
+    />
     <h5>Change Password</h5>
     <form onsubmit={e => e.preventDefault()}>
       <section class="form-group">

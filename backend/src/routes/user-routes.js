@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { addUserRole, deleteUserRole, fetchUserRoles, searchUsers, updateUserName, updateUserEmail } from '../db/user-queries.js';
 import { UserSearchQuerySchema } from '../models/queries.js';
 import { AddRoleRequestSchema, AppError, UpdateUserNameSchema, UpdateEmailSchema } from 'common';
-import { authenticated } from '../middleware/auth-middleware.js';
+import { authenticated, setAuthCookies } from '../middleware/auth-middleware.js';
 import { fetchRoles } from '../db/role-queries.js';
 import { validate } from '../utils/validation.js';
 import { requireRole } from '../middleware/auth-middleware.js';
@@ -86,22 +86,23 @@ router.put('/users/profile/name', authenticated, async (req, res) => {
     res.json({ message: 'Name updated successfully' });
 });
 
-router.put("/users/:userId/email", authenticated, async (req, res) => {
-  const authedReq = /** @type {import('../index.js').AuthenticatedRequest} */ (
-    req
-  );
-  const userId = parseInt(req.params.userId);
-  if (!isFinite(userId) || userId !== authedReq.jwtContents.user.userId) {
-    throw new AppError({
-      code: "validation_error",
-      status: 400,
-      message: "You can only update your own email.",
-      data: { errors: ["You can only update your own email."] },
-    });
+router.put("/users/profile/email", authenticated, async (req, res, next) => {
+  try {
+    const authedReq =
+      /** @type {import('../index.js').AuthenticatedRequest} */ (req);
+
+    const userId = authedReq.jwtContents.user.userId;
+    const { email, twoFactor } = validate(UpdateEmailSchema, req.body);
+
+    const updatedUser = await updateUserEmail(userId, email, twoFactor);
+
+    if (updatedUser) {
+      setAuthCookies(res, updatedUser.jwtContents, updatedUser.refreshToken);
+      res.json(updatedUser.user);
+    }
+  } catch (error) {
+    next(error);
   }
-  const { email, twoFactor } = validate(UpdateEmailSchema, req.body);
-  await updateUserEmail(userId, email, twoFactor);
-  res.status(204).send();
 });
 
 export default router;
