@@ -299,9 +299,10 @@ export const registerUser = async (request) => {
     const twoFactorKeyEncrypted = await encrypt(twoFactorKey);
     const passwordHash = await bcrypt.hash(request.password, saltRounds);
     let userInfo;
+    const lowercaseEmail = request.email.toLowerCase();
 
     try {
-        const result = await pool.query('INSERT INTO users (email, name, password, two_factor_key) VALUES ($1, $2, $3, $4) RETURNING user_id, email, name, password, email_verified, two_factor_key', [request.email, request.name, passwordHash, twoFactorKeyEncrypted]);
+        const result = await pool.query('INSERT INTO users (email, name, password, two_factor_key) VALUES ($1, $2, $3, $4) RETURNING user_id, email, name, password, email_verified, two_factor_key', [lowercaseEmail, request.name, passwordHash, twoFactorKeyEncrypted]);
         userInfo = mapRowToUserInfo(result.rows[0]);
     } catch (error) {
         if (error instanceof pg.DatabaseError && error.constraint === 'users_email_key') {
